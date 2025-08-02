@@ -1,0 +1,5 @@
+{
+  "$schema": "https://dev.wix.com/wix-cli/schemas/wix-config.json",
+  "appId": "b84941e2-dfee-4ce8-835e-e2189a5166fe",
+  "projectId": "purchase-order"
+}

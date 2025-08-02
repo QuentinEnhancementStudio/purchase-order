@@ -1,0 +1,5 @@
+{
+  "$schema": "https://dev.wix.com/wix-cli/schemas/dashboard-page.json",
+  "id": "f64d8184-f598-4084-a664-b9951f9a2681",
+  "title": "Purchase Order"
+}
