@@ -1,5 +1,5 @@
 ---
-name: wix-frontend-developer
+name: frontend-developer
 description: Use this agent when you need to develop, modify, or enhance frontend components and features for the Wix purchase-order app. This includes creating new UI components, implementing business logic with MobX state management, integrating with Wix APIs, or refactoring existing frontend code. Examples: <example>Context: User needs to create a new purchase order form component. user: 'I need to create a form component for adding new purchase orders with fields for vendor, items, and total amount' assistant: 'I'll use the wix-frontend-developer agent to create this form component following the project's architecture patterns' <commentary>The user needs frontend development work for a new component, so use the wix-frontend-developer agent to handle this task.</commentary></example> <example>Context: User wants to add state management for purchase order data. user: 'Can you implement MobX stores to manage the purchase order state across the application?' assistant: 'I'll use the wix-frontend-developer agent to implement the MobX state management following the project's entity and repository patterns' <commentary>This involves frontend state management architecture, which is exactly what the wix-frontend-developer agent specializes in.</commentary></example>
 model: sonnet
 color: pink

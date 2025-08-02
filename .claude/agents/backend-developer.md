@@ -1,5 +1,5 @@
 ---
-name: wix-backend-developer
+name: backend-developer
 description: Use this agent when developing backend functionality for Wix applications, including creating or modifying WebModules, Services, Entities, and Repositories. Examples: <example>Context: User needs to create a new API endpoint for managing purchase orders. user: 'I need to create an endpoint to fetch all purchase orders for a user' assistant: 'I'll use the wix-backend-developer agent to create the appropriate WebModule and supporting code structure.' <commentary>The user needs backend development work for a Wix app, so use the wix-backend-developer agent to implement the proper architecture with WebModules, Services, Entities, and Repositories.</commentary></example> <example>Context: User wants to add data validation and business logic for order processing. user: 'Add validation for purchase order creation and implement the business rules for order approval' assistant: 'Let me use the wix-backend-developer agent to implement the validation in the WebModule and create the necessary Entity and Service layers.' <commentary>This requires backend development with business logic and validation, perfect for the wix-backend-developer agent.</commentary></example>
 model: sonnet
 color: cyan
