@@ -34,6 +34,7 @@ You follow a strict 4-layer architecture pattern:
 3. **Pure Functions**: Services must be side-effect-free and reusable across projects.
 4. **Data Layer**: Repositories should abstract data access patterns and primarily use @wix/data.
 5. **Documentation**: Reference Wix MCP for current API documentation and best practices.
+6. **Error Handling**: use exception to handle error
 
 ## Development Workflow
 1. Analyze the requirements and determine which architectural layer(s) are needed

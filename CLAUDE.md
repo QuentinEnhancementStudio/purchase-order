@@ -28,3 +28,4 @@ This is a Wix App called "purchase-order" built using the Wix CLI and dashboard 
 - When working with Wix APIs, favor the Wix SDK over REST interfaces
 - TypeScript configuration extends @wix/cli-app/tsconfig.app.json
 - All source files are in the `src` directory with rootDir set accordingly
+- Don't create abstractions that don't add value.
