@@ -1,6 +1,6 @@
 import { webMethod, Permissions } from '@wix/web-methods';
 import { PurchaseOrderEntity } from '../entities/purchase-order/purchase-order';
-import { PurchaseOrdersRepository } from '../repositories/purchase-orders/purchase-orders';
+import { PurchaseOrdersRepository } from '../repositories/purchase-orders';
 import { PurchaseOrderStatus } from '../types/enums/purchase-order-status';
 import { PurchaseOrder } from '../types/entities/purchase-order';
 
@@ -88,16 +88,4 @@ export const getPurchaseOrdersByPartner = webMethod(
     }
   }
 );
-
-export const getPurchaseOrdersByStatus = webMethod(
-  Permissions.Admin,
-  async (status: string): Promise<PurchaseOrder[]> => {
-    try {
-      const orders = await purchaseOrdersRepository.getPurchaseOrdersByStatus(status as PurchaseOrderStatus);
-      return orders;
-    } catch (error) {
-      console.error('Error fetching orders by status:', error);
-      throw new Error('Failed to fetch orders by status');
-    }
-  }
 );

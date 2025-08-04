@@ -16,6 +16,11 @@ export abstract class WixCollectionsRepository<T extends WixEntity> {
   protected abstract readonly collectionName: string;
 
   /**
+   * Debug mode flag - set to true to enable operation logging
+   */
+  protected abstract readonly debugEnabled: boolean;
+
+  /**
    * Elevated data operations with proper permissions
    * These work regardless of the calling context (frontend, backend, dashboard)
    */
@@ -26,16 +31,28 @@ export abstract class WixCollectionsRepository<T extends WixEntity> {
   private readonly elevatedQuery = auth.elevate(dataItems.query);
 
   /**
+   * Debug logging helper
+   */
+  private debug(operation: string, params?: any): void {
+    if (!this.debugEnabled) return;
+    
+    const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
+    console.log(`🔍 [${timestamp}] ${this.collectionName}.${operation}`, params || '');
+  }
+
+  /**
    * Create a new item in the collection
    * Wix automatically adds _id, _createdDate, and _updatedDate
    */
   public async create(item: Omit<T, '_id' | '_createdDate' | '_updatedDate' | '_owner'>, options?: DataOperationOptions): Promise<T> {
+    this.debug('create', { fields: Object.keys(item) });
+    
     try {
       // Wix Data will automatically add _id, _createdDate, and _updatedDate
       const result = await this.elevatedInsert(this.collectionName, item as any, options);
       return result as unknown as T;
     } catch (error) {
-      throw this.handleWixError(error);
+      throw this.handleWixError(error, 'create');
     }
   }
 
@@ -43,6 +60,8 @@ export abstract class WixCollectionsRepository<T extends WixEntity> {
    * Get an item by ID
    */
   public async findById(id: string, options?: DataOperationOptions): Promise<T | null> {
+    this.debug('findById', { id });
+    
     try {
       const result = await this.elevatedGet(this.collectionName, id, options);
       return result as unknown as T;
@@ -50,7 +69,7 @@ export abstract class WixCollectionsRepository<T extends WixEntity> {
       if (error.code === 'WDE0002' || error.code === 'WDE0011') {
         return null; // Item not found
       }
-      throw this.handleWixError(error);
+      throw this.handleWixError(error, 'findById', id);
     }
   }
 
@@ -58,12 +77,14 @@ export abstract class WixCollectionsRepository<T extends WixEntity> {
    * Get all items in the collection
    */
   public async findAll(options?: DataOperationOptions): Promise<T[]> {
+    this.debug('findAll');
+    
     try {
       const result = await this.elevatedQuery(this.collectionName)
         .find(options);
       return result.items as unknown as T[];
     } catch (error) {
-      throw this.handleWixError(error);
+      throw this.handleWixError(error, 'findAll');
     }
   }
 
@@ -73,12 +94,14 @@ export abstract class WixCollectionsRepository<T extends WixEntity> {
    * The item object must include _id
    */
   public async update(item: Partial<T> & { _id: string }, options?: DataOperationOptions): Promise<T> {
+    this.debug('update', { id: item._id, fields: Object.keys(item) });
+    
     try {
       // Wix Data will automatically update _updatedDate
       const result = await this.elevatedUpdate(this.collectionName, item as any, options);
       return result as unknown as T;
     } catch (error) {
-      throw this.handleWixError(error);
+      throw this.handleWixError(error, 'update', item._id);
     }
   }
 
@@ -86,16 +109,19 @@ export abstract class WixCollectionsRepository<T extends WixEntity> {
    * Remove an item
    */
   public async remove(id: string, options?: DataOperationOptions): Promise<T> {
+    this.debug('remove', { id });
+    
     try {
       const result = await this.elevatedRemove(this.collectionName, id, options);
       return result as unknown as T;
     } catch (error) {
-      throw this.handleWixError(error);
+      throw this.handleWixError(error, 'remove', id);
     }
   }
 
 
   public query() {
+    this.debug('query');
     return this.elevatedQuery(this.collectionName);
   }
 
@@ -104,13 +130,15 @@ export abstract class WixCollectionsRepository<T extends WixEntity> {
    * Convenience method that wraps query().eq(field, value).find()
    */
   public async findByField(field: string, value: any, options?: DataOperationOptions): Promise<T[]> {
+    this.debug('findByField', { field, value });
+    
     try {
       const result = await this.query()
         .eq(field, value)
         .find(options);
       return result.items as unknown as T[];
     } catch (error) {
-      throw this.handleWixError(error);
+      throw this.handleWixError(error, 'findByField');
     }
   }
 
@@ -118,6 +146,8 @@ export abstract class WixCollectionsRepository<T extends WixEntity> {
    * Find first item by a specific field value
    */
   public async findOneByField(field: string, value: any, options?: DataOperationOptions): Promise<T | null> {
+    this.debug('findOneByField', { field, value });
+    
     try {
       const result = await this.query()
         .eq(field, value)
@@ -125,7 +155,7 @@ export abstract class WixCollectionsRepository<T extends WixEntity> {
         .find(options);
       return result.items[0] as unknown as T || null;
     } catch (error) {
-      throw this.handleWixError(error);
+      throw this.handleWixError(error, 'findOneByField');
     }
   }
 
@@ -133,37 +163,70 @@ export abstract class WixCollectionsRepository<T extends WixEntity> {
    * Count items that match a query
    */
   public async count(options?: DataOperationOptions): Promise<number> {
+    this.debug('count');
+    
     try {
       return await this.query().count(options);
     } catch (error) {
-      throw this.handleWixError(error);
+      throw this.handleWixError(error, 'count');
     }
   }
 
   /**
-   * Count items by field value
+   * Count items by a specific field value
    */
   public async countByField(field: string, value: any, options?: DataOperationOptions): Promise<number> {
+    this.debug('countByField', { field, value });
+    
     try {
-      return await this.query().eq(field, value).count(options);
+      return await this.query()
+        .eq(field, value)
+        .count(options);
     } catch (error) {
-      throw this.handleWixError(error);
+      throw this.handleWixError(error, 'countByField');
     }
   }
 
-
   /**
-   * Handle Wix Data errors with proper error codes and messages
+   * Handle Wix Data errors with context-based error handling
    */
-  public handleWixError(error: any): WixDataError {
-    console.error('Wix Data error:', error);
+  public handleWixError(
+    error: any, 
+    operation?: string, 
+    itemId?: string
+  ): WixDataError {
+    // Auto-detect calling method from stack trace
+    const stack = new Error().stack;
+    const callerMatch = stack?.split('\n')[3]?.match(/at \w+\.(\w+)/);
+    const method = callerMatch?.[1] || 'unknown';
+    
+    // Build context for better debugging
+    const context = {
+      operation: operation || 'unknown',
+      collection: this.collectionName,
+      itemId,
+      method
+    };
+    
+    // Create enhanced error message with location context
+    const location = `${context.collection}.${context.method}(${context.operation}${context.itemId ? `, id: ${context.itemId}` : ''})`;
+    const enhancedMessage = `${location}: ${error.message || 'Database operation failed'}`;
+    
+    console.error('Wix Data error:', {
+      location,
+      context,
+      error
+    });
     
     const wixError: WixDataError = {
       name: 'WixDataError',
-      message: error.message || 'Database operation failed',
+      message: enhancedMessage,
       code: error.code || 'UNKNOWN_ERROR',
       description: error.description,
-      data: error.data
+      data: {
+        ...error.data,
+        context
+      }
     };
     
     return wixError;

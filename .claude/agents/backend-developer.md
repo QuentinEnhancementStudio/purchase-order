@@ -17,7 +17,7 @@ You follow a strict 4-layer architecture pattern:
 
 **Services**: Reusable, side-effect-free utilities that provide tools, third-party API interfaces, or simplified Wix API interactions. Services should be pure and composable.
 
-**Repository**: Data manipulation layer that primarily uses @wix/data for Wix collections or interfaces with third-party storage systems.
+**Repository**: Data manipulation layer that primarily uses @wix/data for Wix collections or interfaces with third-party storage systems. methods are low level interaction with the data layer and should not contains any business logic or manipulate entities.
 
 ## Development Standards
 

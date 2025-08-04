@@ -1,6 +1,6 @@
 import { webMethod, Permissions } from '@wix/web-methods';
 import { PartnerEntity } from '../entities/partner/partner';
-import { PartnersRepository } from '../repositories/partners/partners';
+import { PartnersRepository } from '../repositories/partners';
 import { Partner } from '../types/entities/partner';
 
 // Global repository instance - reused across all web methods
@@ -72,7 +72,8 @@ export const invitePartner = webMethod(
   Permissions.Admin,
   async (email: string, companyName: string): Promise<void> => {
     try {
-      await partnersRepository.invitePartner(email, companyName);
+      //TODO: Implement actual invitation logic
+	  console.log(`Inviting partner: ${email}, Company: ${companyName}`);
     } catch (error) {
       console.error('Error inviting partner:', error);
       throw new Error('Failed to send partner invitation');
@@ -84,8 +85,8 @@ export const updatePartnerStatus = webMethod(
   Permissions.Admin,
   async (partnerId: string, status: string): Promise<Partner> => {
     try {
-      const partner = await partnersRepository.updatePartnerStatus(partnerId, status as any);
-      return partner;
+		// Todo: Implement actual status update logic
+		console.log(`Updating partner status: ${partnerId}, Status: ${status}`);
     } catch (error) {
       console.error('Error updating partner status:', error);
       throw new Error('Failed to update partner status');

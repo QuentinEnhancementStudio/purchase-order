@@ -1,19 +1,20 @@
-import { PurchaseOrder, PurchaseOrderStatus } from '../../types/entities/purchase-order';
-import { WixCollectionsRepository } from '../wix-data/wix-collections';
-import { DataOperationOptions } from '../../types/base-entity';
+import { PurchaseOrder, PurchaseOrderStatus } from '../types/entities/purchase-order';
+import { WixCollectionsRepository } from './wix-data/wix-collections';
+import { DataOperationOptions } from '../types/base-entity';
 
 export class PurchaseOrdersRepository extends WixCollectionsRepository<PurchaseOrder> {
   protected readonly collectionName = 'PurchaseOrders';
+  protected readonly debugEnabled = false;
 
   /**
    * Create a new purchase order
    */
-  async createPurchaseOrder(orderData: Omit<PurchaseOrder, '_id' | '_createdDate' | '_updatedDate'>): Promise<PurchaseOrder> {
+  async createPurchaseOrder(purchaseOrderData: Omit<PurchaseOrder, '_id' | '_createdDate' | '_updatedDate'>): Promise<PurchaseOrder> {
     // Validate required fields
-    this.validateRequiredFields(orderData, ['identifier', 'status', 'memberId', 'version']);
+    this.validateRequiredFields(purchaseOrderData, ['identifier', 'status', 'memberId', 'version']);
     
     // For Wix entities, the system will automatically add _id, _createdDate, _updatedDate
-    return await this.create(orderData);
+    return await this.create(purchaseOrderData);
   }
 
   /**
@@ -26,8 +27,8 @@ export class PurchaseOrdersRepository extends WixCollectionsRepository<PurchaseO
   /**
    * Find purchase order by ID
    */
-  async getPurchaseOrderById(orderId: string): Promise<PurchaseOrder | null> {
-    return await this.findById(orderId);
+  async getPurchaseOrderById(purchaseOrderId: string): Promise<PurchaseOrder | null> {
+    return await this.findById(purchaseOrderId);
   }
 
   /**
@@ -37,12 +38,6 @@ export class PurchaseOrdersRepository extends WixCollectionsRepository<PurchaseO
     return await this.findByField('memberId', memberId);
   }
 
-  /**
-   * Find purchase orders by status
-   */
-  async getPurchaseOrdersByStatus(status: PurchaseOrderStatus): Promise<PurchaseOrder[]> {
-    return await this.findByField('status', status);
-  }
 
   /**
    * Find purchase order by identifier
@@ -142,7 +137,7 @@ export class PurchaseOrdersRepository extends WixCollectionsRepository<PurchaseO
       const result = await query.find(dataOptions);
       return result.items as PurchaseOrder[];
     } catch (error) {
-      throw this.handleWixError(error);
+      throw this.handleWixError(error, 'getPurchaseOrdersWithPagination', this.collectionName);
     }
   }
 
@@ -232,7 +227,7 @@ export class PurchaseOrdersRepository extends WixCollectionsRepository<PurchaseO
       const result = await query.find(options);
       return result.items as PurchaseOrder[];
     } catch (error) {
-      throw this.handleWixError(error);
+      throw this.handleWixError(error, 'searchPurchaseOrders', this.collectionName);
     }
   }
 
@@ -300,7 +295,7 @@ export class PurchaseOrdersRepository extends WixCollectionsRepository<PurchaseO
       const result = await query.find();
       return result.items as PurchaseOrder[];
     } catch (error) {
-      throw this.handleWixError(error);
+      throw this.handleWixError(error, 'getOrdersByStatusDetailed', this.collectionName);
     }
   }
 }

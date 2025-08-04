@@ -6,7 +6,7 @@ export * from './entities/purchase-order/purchase-order-state';
 
 
 // Repositories
-export * from './repositories/partners/partners';
+export * from './repositories/partners';
 
 // Types
 export type { 

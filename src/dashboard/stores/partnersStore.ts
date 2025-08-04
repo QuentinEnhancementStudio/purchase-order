@@ -148,7 +148,8 @@ export class PartnersStore {
   }
 
   updatePartner(id: string, updates: Partial<Partner>): void {
-    const promise = updatePartner(id, updates);
+    const partnerToUpdate = { _id: id, ...updates };
+    const promise = updatePartner(partnerToUpdate);
     this.updatePartnerRequest = fromPromise(promise);
   }
 
