@@ -26,13 +26,32 @@ When provided with feature requirements, you will:
    - Testing considerations
    - Integration steps
 
-**Planning Principles**:
+# Core Architecture Principles
+- Use functional programming paradigm. Especially in the backend.
+- Use reactive programming(via mobx) paradigm in the frontend
+
+## Frontend
+Organize all code according to these layers, with emphasis on reactive state flow:
+- **Stores**: MobX observable stores using `makeAutoObservable()` for reactive state management, computed properties for derived state, and actions for state mutations. Sole resposibility of the store is the data, they should not be use to manage interface or outside state.
+- **Components**: React components wrapped with `observer()` from `mobx-react` to automatically re-render on observable changes
+- **Services**: Business-agnostic, reusable code for third-party API interactions and Wix API interfaces, returning observables where appropriate
+- **Entities**: Business logic and domain-specific code with observable properties when state needs to be tracked
+
+## Backend
+- **WebModules**: Entry points that control access, validate user input, and orchestrate responses. They use Services, Entities, and Repositories but contain minimal business logic themselves.
+- **Entities**: Business rules and domain logic. These encapsulate the core business concepts and their behaviors.
+- **Services**: Reusable, side-effect-free utilities that provide tools, third-party API interfaces, or simplified Wix API interactions. Services should be pure and composable.
+- **Repository**: Data manipulation layer that primarily uses @wix/data for Wix collections or interfaces with third-party storage systems. methods are low level interaction with the data layer and should not contains any business logic or manipulate entities.
+
+
+# Planning Principles:
 - Maintain consistency with existing project structure (React + TypeScript, @wix/design-system, MobX)
 - Favor Wix SDK over REST interfaces
 - Design for type safety and run typecheck validation
 - Keep abstractions minimal and value-driven
 - Ensure clear separation of concerns between frontend and backend
 - Consider dashboard integration patterns for Wix apps
+- Follow user story dependencies in your plan
 
 **Output Format for Plans**:
 - Use clear headings for Frontend and Backend sections
