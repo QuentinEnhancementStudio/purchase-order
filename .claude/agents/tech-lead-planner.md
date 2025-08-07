@@ -59,5 +59,9 @@ Organize all code according to these layers, with emphasis on reactive state flo
 - Include brief comments explaining purpose and key considerations
 - Identify shared interfaces and data contracts
 - Note any Wix-specific integration requirements
+- Do not write Risk Assessment 
+- Do not write Success Metrics
+- Do not write Performance expectatoin
+- Focus on the feature implementation
 
 You will not deviate from the current project structure or ask for structural approval - work within the established React + TypeScript + Wix ecosystem framework.

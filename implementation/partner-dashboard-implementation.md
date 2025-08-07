@@ -39,9 +39,9 @@ Comprehensive implementation plan for the partner dashboard feature based on 20 
 - [ ] **Update Partner Entity Class**
   ```typescript
   // File: src/backend/entities/partner/partner.ts
-  import { Partner, PartnerStatus, PartnerValidator } from '../../../types/entities/partner';
+  import { Partner, PartnerStatus, validateStatusTransition } from '../../../types/entities/partner';
   
-  // Use shared validation from PartnerValidator
+  // Use shared validation functions
   static validateEmailUniqueness(email: string): Promise<boolean> // Backend-specific uniqueness check
   ```
 
@@ -58,10 +58,10 @@ Comprehensive implementation plan for the partner dashboard feature based on 20 
 - [ ] **Implement Core Web Methods**
   ```typescript
   // File: src/backend/web-methods/partners.web.ts
-  import { Partner, PartnerStatus, CreatePartnerData, PartnerValidator } from '../../types/entities/partner';
+  import { Partner, PartnerStatus, CreatePartnerData, validateCreateData } from '../../types/entities/partner';
   
   getPartners(): Promise<Partner[]> // Admin only
-  createPartner(data: CreatePartnerData): Promise<Partner> // Admin only + use PartnerValidator
+  createPartner(data: CreatePartnerData): Promise<Partner> // Admin only + use validateCreateData
   ```
 
 - [ ] **Create Shared Types & Validation**
@@ -113,97 +113,95 @@ Comprehensive implementation plan for the partner dashboard feature based on 20 
   } as const;
   
   // Shared validation functions (pure functions, work in both frontend and backend)
-  export class PartnerValidator {
-    static validateCompanyName(name: string): ValidationResult {
-      const errors: string[] = [];
-      
-      if (!name || name.trim().length === 0) {
-        errors.push('Company name is required');
-      } else {
-        const trimmed = name.trim();
-        if (trimmed.length < PARTNER_VALIDATION.COMPANY_NAME.MIN_LENGTH) {
-          errors.push(`Company name must be at least ${PARTNER_VALIDATION.COMPANY_NAME.MIN_LENGTH} characters`);
-        }
-        if (trimmed.length > PARTNER_VALIDATION.COMPANY_NAME.MAX_LENGTH) {
-          errors.push(`Company name must not exceed ${PARTNER_VALIDATION.COMPANY_NAME.MAX_LENGTH} characters`);
-        }
+  export const validateCompanyName = (name: string): ValidationResult => {
+    const errors: string[] = [];
+    
+    if (!name || name.trim().length === 0) {
+      errors.push('Company name is required');
+    } else {
+      const trimmed = name.trim();
+      if (trimmed.length < PARTNER_VALIDATION.COMPANY_NAME.MIN_LENGTH) {
+        errors.push(`Company name must be at least ${PARTNER_VALIDATION.COMPANY_NAME.MIN_LENGTH} characters`);
       }
-      
-      return { isValid: errors.length === 0, errors };
-    }
-    
-    static validateDiscount(discount: number): ValidationResult {
-      const errors: string[] = [];
-      
-      if (isNaN(discount)) {
-        errors.push('Discount must be a valid number');
-      } else {
-        if (discount < PARTNER_VALIDATION.DISCOUNT.MIN_VALUE) {
-          errors.push(`Discount cannot be less than ${PARTNER_VALIDATION.DISCOUNT.MIN_VALUE}%`);
-        }
-        if (discount > PARTNER_VALIDATION.DISCOUNT.MAX_VALUE) {
-          errors.push(`Discount cannot exceed ${PARTNER_VALIDATION.DISCOUNT.MAX_VALUE}%`);
-        }
-        // Check decimal places
-        const decimalPlaces = (discount.toString().split('.')[1] || '').length;
-        if (decimalPlaces > PARTNER_VALIDATION.DISCOUNT.DECIMAL_PLACES) {
-          errors.push(`Discount can have at most ${PARTNER_VALIDATION.DISCOUNT.DECIMAL_PLACES} decimal places`);
-        }
+      if (trimmed.length > PARTNER_VALIDATION.COMPANY_NAME.MAX_LENGTH) {
+        errors.push(`Company name must not exceed ${PARTNER_VALIDATION.COMPANY_NAME.MAX_LENGTH} characters`);
       }
-      
-      return { isValid: errors.length === 0, errors };
     }
     
-    static validateEmailFormat(email: string): ValidationResult {
-      const errors: string[] = [];
-      
-      if (!email || email.trim().length === 0) {
-        errors.push('Email is required');
-      } else if (!PARTNER_VALIDATION.EMAIL.REGEX.test(email)) {
-        errors.push('Please enter a valid email address');
+    return { isValid: errors.length === 0, errors };
+  };
+  
+  export const validateDiscount = (discount: number): ValidationResult => {
+    const errors: string[] = [];
+    
+    if (isNaN(discount)) {
+      errors.push('Discount must be a valid number');
+    } else {
+      if (discount < PARTNER_VALIDATION.DISCOUNT.MIN_VALUE) {
+        errors.push(`Discount cannot be less than ${PARTNER_VALIDATION.DISCOUNT.MIN_VALUE}%`);
       }
-      
-      return { isValid: errors.length === 0, errors };
+      if (discount > PARTNER_VALIDATION.DISCOUNT.MAX_VALUE) {
+        errors.push(`Discount cannot exceed ${PARTNER_VALIDATION.DISCOUNT.MAX_VALUE}%`);
+      }
+      // Check decimal places
+      const decimalPlaces = (discount.toString().split('.')[1] || '').length;
+      if (decimalPlaces > PARTNER_VALIDATION.DISCOUNT.DECIMAL_PLACES) {
+        errors.push(`Discount can have at most ${PARTNER_VALIDATION.DISCOUNT.DECIMAL_PLACES} decimal places`);
+      }
     }
     
-    static getValidStatusTransitions(currentStatus: PartnerStatus): PartnerStatus[] {
-      const transitions: Record<PartnerStatus, PartnerStatus[]> = {
-        'pending': ['active', 'inactive'],
-        'active': ['inactive'],
-        'inactive': ['active']
-      };
-      
-      return transitions[currentStatus] || [];
+    return { isValid: errors.length === 0, errors };
+  };
+  
+  export const validateEmailFormat = (email: string): ValidationResult => {
+    const errors: string[] = [];
+    
+    if (!email || email.trim().length === 0) {
+      errors.push('Email is required');
+    } else if (!PARTNER_VALIDATION.EMAIL.REGEX.test(email)) {
+      errors.push('Please enter a valid email address');
     }
     
-    static validateStatusTransition(current: PartnerStatus, newStatus: PartnerStatus): ValidationResult {
-      const validTransitions = this.getValidStatusTransitions(current);
-      const isValid = validTransitions.includes(newStatus);
-      
-      return {
-        isValid,
-        errors: isValid ? [] : [`Cannot change status from ${current} to ${newStatus}`]
-      };
-    }
+    return { isValid: errors.length === 0, errors };
+  };
+  
+  export const getValidStatusTransitions = (currentStatus: PartnerStatus): PartnerStatus[] => {
+    const transitions: Record<PartnerStatus, PartnerStatus[]> = {
+      'pending': ['active', 'inactive'],
+      'active': ['inactive'],
+      'inactive': ['active']
+    };
     
-    static validateCreateData(data: CreatePartnerData): ValidationResult {
-      const allErrors: string[] = [];
-      
-      // Validate company name
-      const companyResult = this.validateCompanyName(data.companyName);
-      allErrors.push(...companyResult.errors);
-      
-      // Validate email format (uniqueness check happens at service layer)
-      const emailResult = this.validateEmailFormat(data.email);
-      allErrors.push(...emailResult.errors);
-      
-      // Validate discount
-      const discountResult = this.validateDiscount(data.globalDiscountPercentage);
-      allErrors.push(...discountResult.errors);
-      
-      return { isValid: allErrors.length === 0, errors: allErrors };
-    }
-  }
+    return transitions[currentStatus] || [];
+  };
+  
+  export const validateStatusTransition = (current: PartnerStatus, newStatus: PartnerStatus): ValidationResult => {
+    const validTransitions = getValidStatusTransitions(current);
+    const isValid = validTransitions.includes(newStatus);
+    
+    return {
+      isValid,
+      errors: isValid ? [] : [`Cannot change status from ${current} to ${newStatus}`]
+    };
+  };
+  
+  export const validateCreateData = (data: CreatePartnerData): ValidationResult => {
+    const allErrors: string[] = [];
+    
+    // Validate company name
+    const companyResult = validateCompanyName(data.companyName);
+    allErrors.push(...companyResult.errors);
+    
+    // Validate email format (uniqueness check happens at service layer)
+    const emailResult = validateEmailFormat(data.email);
+    allErrors.push(...emailResult.errors);
+    
+    // Validate discount
+    const discountResult = validateDiscount(data.globalDiscountPercentage);
+    allErrors.push(...discountResult.errors);
+    
+    return { isValid: allErrors.length === 0, errors: allErrors };
+  };
   ```
 
 #### Testing Checklist:
@@ -226,7 +224,11 @@ Comprehensive implementation plan for the partner dashboard feature based on 20 
     Partner, 
     PartnerStatus, 
     CreatePartnerData,
-    PartnerValidator,
+    validateCompanyName,
+    validateDiscount,
+    validateEmailFormat,
+    validateStatusTransition,
+    validateCreateData,
     ValidationResult,
     PARTNER_VALIDATION 
   } from '../../types/entities/partner';
@@ -403,25 +405,34 @@ Comprehensive implementation plan for the partner dashboard feature based on 20 
 - [ ] **Backend-Specific Validation Services**
   ```typescript
   // File: src/backend/services/validation/partner-validation.ts
-  import { PartnerValidator, ValidationResult } from '../../../types/entities/partner';
+  import { validateCreateData, ValidationResult } from '../../../types/entities/partner';
   
-  class PartnerValidationService {
-    // Use shared PartnerValidator for format validation
-    // Add backend-specific validation (e.g., uniqueness checks)
-    static async validateEmailUniqueness(email: string): Promise<ValidationResult>
-    static async validateCreateData(data: CreatePartnerData): Promise<ValidationResult> {
-      // Use PartnerValidator.validateCreateData() + uniqueness checks
-    }
-  }
+  // Backend-specific validation functions (not class-based)
+  export const validateEmailUniqueness = async (email: string): Promise<ValidationResult> => {
+    // Backend-specific uniqueness check implementation
+    // Return ValidationResult
+  };
+  
+  export const validateCreateDataWithUniqueness = async (data: CreatePartnerData): Promise<ValidationResult> => {
+    // Use shared validateCreateData() + uniqueness checks
+    const formatValidation = validateCreateData(data);
+    const uniquenessValidation = await validateEmailUniqueness(data.email);
+    
+    return {
+      isValid: formatValidation.isValid && uniquenessValidation.isValid,
+      errors: [...formatValidation.errors, ...uniquenessValidation.errors]
+    };
+  };
   ```
 
 - [ ] **Update Create Web Method**
   ```typescript
   // File: src/backend/web-methods/partners.web.ts
-  import { PartnerValidator, CreatePartnerData } from '../../types/entities/partner';
+  import { validateCreateData, CreatePartnerData } from '../../types/entities/partner';
+  import { validateCreateDataWithUniqueness } from '../services/validation/partner-validation';
   
   createPartner(data: CreatePartnerData): Promise<Partner>
-  // Use PartnerValidator.validateCreateData() + PartnerValidationService for uniqueness
+  // Use validateCreateDataWithUniqueness() for complete validation
   // Wix member integration for email
   ```
 
@@ -433,7 +444,7 @@ Comprehensive implementation plan for the partner dashboard feature based on 20 
   ```
 
 #### Testing Checklist:
-- [ ] Shared PartnerValidator works in backend context
+- [ ] Shared validation functions work in backend context
 - [ ] Backend-specific email uniqueness validation
 - [ ] All validation error messages are clear and consistent
 - [ ] Member integration works correctly
@@ -458,7 +469,7 @@ Comprehensive implementation plan for the partner dashboard feature based on 20 
   ```
   - Form fields: Company Name, Wix Account, Discount %, Status
   - Status defaults to "Pending"
-  - Real-time validation using shared PartnerValidator with error display
+  - Real-time validation using shared validation functions with error display
   - Form reset on close
 
 - [ ] **Create PartnerForm Component**
@@ -472,7 +483,7 @@ Comprehensive implementation plan for the partner dashboard feature based on 20 
   }
   ```
   - Reusable for both create and edit
-  - Field validation using PartnerValidator with error messages
+  - Field validation using shared validation functions with error messages
   - Character count indicators
   - Auto % symbol for discount
 
@@ -528,8 +539,8 @@ Comprehensive implementation plan for the partner dashboard feature based on 20 
 - [ ] **Status Transition Logic**
   ```typescript
   // File: src/backend/entities/partner/partner.ts
-  // Use PartnerValidator.getValidStatusTransitions() and PartnerValidator.validateStatusTransition()
-  // from shared validation
+  // Use getValidStatusTransitions() and validateStatusTransition()
+  // from shared validation functions
   ```
 
 - [ ] **Delete Safety Checks**
@@ -540,7 +551,7 @@ Comprehensive implementation plan for the partner dashboard feature based on 20 
 
 #### Testing Checklist:
 - [ ] Update partner works with validation (including status updates)
-- [ ] Status transitions follow business rules via PartnerValidator
+- [ ] Status transitions follow business rules via validation functions
 - [ ] Delete prevents data integrity issues
 - [ ] All operations maintain audit trail
 
