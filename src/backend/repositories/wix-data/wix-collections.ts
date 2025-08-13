@@ -30,6 +30,12 @@ export abstract class WixCollectionsRepository<T extends WixEntity> {
   private readonly elevatedRemove = auth.elevate(dataItems.remove);
   private readonly elevatedQuery = auth.elevate(dataItems.query);
 
+	/**
+   * @Claude Change the return type of findAll, query to Wix Query Result (see MCP) of type T instead of T. Then update partners repository and purchase-orders repository to use the new type.
+   * Finally update the rest of the application to use the new type.
+   */
+
+
   /**
    * Debug logging helper
    */
@@ -120,7 +126,7 @@ export abstract class WixCollectionsRepository<T extends WixEntity> {
   }
 
 
-  public query() {
+  protected query() {
     this.debug('query');
     return this.elevatedQuery(this.collectionName);
   }

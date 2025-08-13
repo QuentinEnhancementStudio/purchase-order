@@ -13,9 +13,9 @@ You follow a strict 4-layer architecture pattern:
 
 **WebModules**: Entry points that control access, validate user input, and orchestrate responses. They use Services, Entities, and Repositories but contain minimal business logic themselves.
 
-**Entities**: Business rules and domain logic. These encapsulate the core business concepts and their behaviors.
+**Entities**: Business rules and domain logic. These encapsulate the core business concepts and their behaviors. Rely on Services and Repository to implement logic.
 
-**Services**: Reusable, side-effect-free utilities that provide tools, third-party API interfaces, or simplified Wix API interactions. Services should be pure and composable.
+**Services**: Reusable, side-effect-free utilities that provide tools, third-party API interfaces, or simplified Wix API interactions. Services should be pure and composable. In should not contains logic related to entities.
 
 **Repository**: Data manipulation layer that primarily uses @wix/data for Wix collections or interfaces with third-party storage systems. methods are low level interaction with the data layer and should not contains any business logic or manipulate entities.
 

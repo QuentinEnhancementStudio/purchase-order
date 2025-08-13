@@ -1,0 +1,32 @@
+import { Partner, PartnerStatus } from '../../../types';
+
+export type SortField = 'companyName' | 'status' | 'discount';
+export type SortDirection = 'asc' | 'desc';
+
+export interface PartnersTableProps {
+  partners: Partner[];
+  isLoading: boolean;
+  searchQuery: string;
+  statusFilter: string;
+  sortField: SortField;
+  sortDirection: SortDirection;
+  currentPage: number;
+  totalPages: number;
+  itemsPerPage: number;
+  onSearchChange: (query: string) => void;
+  onStatusFilterChange: (status: string) => void;
+  onSortChange: (field: SortField, direction: SortDirection) => void;
+  onPageChange: (page: number) => void;
+  onAddPartner: () => void;
+  onEditPartner: (partner: Partner) => void;
+  onDeletePartner: (partner: Partner) => void;
+  onChangeStatus: (partner: Partner) => void;
+}
+
+export interface SearchAndFilterState {
+  searchQuery: string;
+  statusFilter: string;
+  sortField: SortField;
+  sortDirection: SortDirection;
+  currentPage: number;
+}

@@ -33,3 +33,4 @@ This is a Wix App called "purchase-order" built using the Wix CLI and dashboard 
 - When working with Wix APIs, favor the Wix SDK over REST interfaces
 - All source files are in the `src` directory with rootDir set accordingly
 - Don't create abstractions that don't add value.
+- Keep addition to the minimum requested. Only produce explicitly required code and do not generate code that you MIGHT need in the future.

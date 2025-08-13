@@ -1,42 +1,11 @@
 // Re-export backend types for frontend use
 export type { 
   Partner, 
-  ContactDetails, 
-  BillingDetails, 
-  Address, 
   PartnerStatus,
-  PartnerInvitation,
-  InvitationStatus 
-} from '../../backend/types/entities/partner';
+  PartnerBase
+} from '../../backend/entities/partner/schemas';
 
-export type { 
-  PurchaseOrder, 
-  PurchaseOrderStatus, 
-  PurchaseOrderHistory,
-  OrderConversionResult,
-  CalculatedDraftOrder,
-  DraftOrder,
-  OrderLineItem,
-  Price,
-  PriceSummary
-} from '../../backend/types/entities/purchase-order';
-
-// @deprecated Use calculatedDraftOrder.draftOrder.lineItems instead
-export type { PurchaseOrderItem } from '../../backend/types/entities/purchase-order';
-
-export { 
-  PurchaseOrderStatus as OrderStatus,
-  NotificationType 
-} from '../../backend/types/enums/purchase-order-status';
-
-// Frontend-specific types
-export interface ApiResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  message?: string;
-}
-
+/** @todo redefine paginatedResponse*/
 export interface PaginatedResponse<T> {
   items: T[];
   totalCount: number;

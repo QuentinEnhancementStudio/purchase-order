@@ -2,13 +2,14 @@ import { makeAutoObservable, runInAction, reaction, IReactionDisposer } from 'mo
 import { fromPromise, IPromiseBasedObservable } from 'mobx-utils';
 import { Partner } from '../types';
 import {
-  getPartners,
-  getPartnerById,
+  queryPartners,
   createPartner,
   updatePartner,
-  invitePartner,
-  updatePartnerStatus
+  deletePartner
 } from '../../backend/web-methods/partners.web';
+// Remove import for missing errorPropagation module
+import { AppError } from '../services/AppError/AppError';
+import { ErrorCategory } from '../services/AppError/ErrorCategories';
 
 interface PartnerFilter {
   status?: string | null;
@@ -17,14 +18,14 @@ interface PartnerFilter {
 
 export class PartnersStore {
   partners = new Map<string, Partner>();
-  error: string | null = null;
+  error: AppError | null = null;
   
   // Observable promises for reactive request states - initialized as resolved with empty arrays/objects
   loadPartnersRequest: IPromiseBasedObservable<Partner[]> = fromPromise.resolve([]);
   createPartnerRequest: IPromiseBasedObservable<Partner> = fromPromise.resolve({} as Partner);
   updatePartnerRequest: IPromiseBasedObservable<Partner> = fromPromise.resolve({} as Partner);
-  invitePartnerRequest: IPromiseBasedObservable<void> = fromPromise.resolve(undefined);
-  
+  deletePartnerRequest: IPromiseBasedObservable<Partner> = fromPromise.resolve({} as Partner);
+
   // Reaction disposers for cleanup
   private reactionDisposers: IReactionDisposer[] = [];
 
@@ -37,8 +38,9 @@ export class PartnersStore {
     // Reaction for load partners requests
     this.reactionDisposers.push(
       reaction(
-        () => this.loadPartnersRequest,
-        (request) => {
+        () => ({ state: this.loadPartnersRequest.state, value: this.loadPartnersRequest.value }),
+        () => {
+          const request = this.loadPartnersRequest;
           request.case({
             pending: () => {
               // Clear any previous errors when request starts
@@ -55,8 +57,14 @@ export class PartnersStore {
               }
             },
             rejected: (error: any) => {
-              console.error('Error loading partners:', error);
-              this.error = 'Failed to load partners';
+              this.error = AppError.wrap(error, {
+                category: ErrorCategory.SERVER,
+                userMessage: 'Failed to load partners',
+                technicalMessage: `Error loading partners: ${error?.message || 'Unknown error'}`,
+                source: 'PartnersStore.loadPartners',
+                layer: 'Store',
+                context: { operation: 'loadPartners' }
+              });
             }
           });
         }
@@ -66,8 +74,9 @@ export class PartnersStore {
     // Reaction for create partner requests
     this.reactionDisposers.push(
       reaction(
-        () => this.createPartnerRequest,
-        (request) => {
+        () => ({ state: this.createPartnerRequest.state, value: this.createPartnerRequest.value }),
+        () => {
+          const request = this.createPartnerRequest;
           request.case({
             pending: () => {
               // Clear any previous errors when request starts
@@ -81,8 +90,14 @@ export class PartnersStore {
               }
             },
             rejected: (error: any) => {
-              console.error('Error creating partner:', error);
-              this.error = 'Failed to create partner';
+              this.error = AppError.wrap(error, {
+                category: ErrorCategory.SERVER,
+                userMessage: 'Failed to create partner',
+                technicalMessage: `Error creating partner: ${error?.message || 'Unknown error'}`,
+                source: 'PartnersStore.createPartner',
+                layer: 'Store',
+                context: { operation: 'createPartner' }
+              });
             }
           });
         }
@@ -92,8 +107,9 @@ export class PartnersStore {
     // Reaction for update partner requests
     this.reactionDisposers.push(
       reaction(
-        () => this.updatePartnerRequest,
-        (request) => {
+        () => ({ state: this.updatePartnerRequest.state, value: this.updatePartnerRequest.value }),
+        () => {
+          const request = this.updatePartnerRequest;
           request.case({
             pending: () => {
               // Clear any previous errors when request starts
@@ -107,38 +123,64 @@ export class PartnersStore {
               }
             },
             rejected: (error: any) => {
-              console.error('Error updating partner:', error);
-              this.error = 'Failed to update partner';
+              this.error = AppError.wrap(error, {
+                category: ErrorCategory.SERVER,
+                userMessage: 'Failed to update partner',
+                technicalMessage: `Error updating partner: ${error?.message || 'Unknown error'}`,
+                source: 'PartnersStore.updatePartner',
+                layer: 'Store',
+                context: { operation: 'updatePartner' }
+              });
             }
           });
         }
       )
     );
 
-    // Reaction for invite partner requests
+    // Reaction for delete partner requests
     this.reactionDisposers.push(
       reaction(
-        () => this.invitePartnerRequest,
-        (request) => {
+        () => ({ state: this.deletePartnerRequest.state, value: this.deletePartnerRequest.value }),
+        () => {
+          const request = this.deletePartnerRequest;
           request.case({
             pending: () => {
               // Clear any previous errors when request starts
               this.error = null;
             },
-            fulfilled: () => {
+            fulfilled: (deletedPartner: Partner) => {
+              if (deletedPartner) {
+                runInAction(() => {
+                  this.partners.delete(deletedPartner._id);
+                });
+              }
             },
             rejected: (error: any) => {
-              console.error('Error inviting partner:', error);
-              this.error = 'Failed to send partner invitation';
+              this.error = AppError.wrap(error, {
+                category: ErrorCategory.SERVER,
+                userMessage: 'Failed to delete partner',
+                technicalMessage: `Error deleting partner: ${error?.message || 'Unknown error'}`,
+                source: 'PartnersStore.deletePartner',
+                layer: 'Store',
+                context: { operation: 'deletePartner' }
+              });
             }
           });
         }
       )
     );
+
+	// Reaction for error handling
+    this.reactionDisposers.push(
+      reaction(
+        () => this.error,
+        (reason) => reason?.log(),
+      )
+    );
   }
 
   loadPartners(): void {
-    const promise = getPartners();
+    const promise = queryPartners();
     this.loadPartnersRequest = fromPromise(promise);
   }
 
@@ -147,20 +189,15 @@ export class PartnersStore {
     this.createPartnerRequest = fromPromise(promise);
   }
 
-  updatePartner(id: string, updates: Partial<Partner>): void {
-    const partnerToUpdate = { _id: id, ...updates };
+  updatePartner(partnerToUpdate: Partner): void {
     const promise = updatePartner(partnerToUpdate);
     this.updatePartnerRequest = fromPromise(promise);
   }
 
-  invitePartner(email: string, companyName: string): void {
-    const promise = invitePartner(email, companyName);
-    this.invitePartnerRequest = fromPromise(promise);
-  }
 
-  updatePartnerStatus(id: string, status: Partner['status']): void {
-    const promise = updatePartnerStatus(id, status);
-    this.updatePartnerRequest = fromPromise(promise);
+  deletePartner(id: string): void {
+    const promise = deletePartner(id);
+    this.deletePartnerRequest = fromPromise(promise);
   }
 
   getPartnerById(id: string): Partner | undefined {
@@ -183,10 +220,6 @@ export class PartnersStore {
     return this.getFilteredPartners({ status: 'active' });
   }
 
-  getPartnersByStatus(status: string): Partner[] {
-    return this.getFilteredPartners({ status });
-  }
-
   searchPartnersByCompany(companyName: string): Partner[] {
     return this.getFilteredPartners({ companyName });
   }
@@ -203,6 +236,10 @@ export class PartnersStore {
     return this.getActivePartners().length;
   }
 
+  clearError(): void {
+    this.error = null;
+  }
+
   get partnersAsArray(): Partner[] {
     return Array.from(this.partners.values());
   }
@@ -211,7 +248,7 @@ export class PartnersStore {
     return (this.loadPartnersRequest.state === 'pending') ||
            (this.createPartnerRequest.state === 'pending') ||
            (this.updatePartnerRequest.state === 'pending') ||
-           (this.invitePartnerRequest.state === 'pending');
+           (this.deletePartnerRequest.state === 'pending'); 
   }
   
   get isLoadingPartners(): boolean {
@@ -226,10 +263,9 @@ export class PartnersStore {
     return this.updatePartnerRequest.state === 'pending';
   }
   
-  get isInvitingPartner(): boolean {
-    return this.invitePartnerRequest.state === 'pending';
+  get isDeletingPartner(): boolean {
+    return this.deletePartnerRequest.state === 'pending';
   }
-
 
   dispose() {
     // Clean up reactions

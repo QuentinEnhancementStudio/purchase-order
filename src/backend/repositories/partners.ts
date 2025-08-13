@@ -1,19 +1,20 @@
-import { Partner } from '../types/entities/partner';
+import { z } from 'zod';
+import { Partner, PartnerBase, PartnerBaseSchema} from '../entities/partner/schemas';
 import { WixCollectionsRepository } from './wix-data/wix-collections';
 import { DataOperationOptions } from '../types/base-entity';
 
 export class PartnersRepository extends WixCollectionsRepository<Partner> {
-  protected readonly collectionName = 'Partners';
+  protected readonly collectionName = '@code-enhancement-studio/purchase-order/Partners';
   protected readonly debugEnabled = false;
 
   /**
    * Create a new partner
    */
-  async createPartner(partnerData: Omit<Partner, '_id' | '_createdDate' | '_updatedDate' | '_owner'>): Promise<Partner> {
-    // Validate required fields
-    this.validateRequiredFields(partnerData, ['memberId', 'companyName', 'contactInfo', 'billingInfo', 'status']);
+  async createPartner(partner: PartnerBase): Promise<Partner> {
+    // Validate using PartnerBaseSchema
+    const validatedData = PartnerBaseSchema.parse(partner);
     
-    return await this.create(partnerData);
+    return await this.create(validatedData);
   }
 
   /**
@@ -38,12 +39,24 @@ export class PartnersRepository extends WixCollectionsRepository<Partner> {
   }
 
   /**
+   * Find partner by email address
+   */
+  async getPartnerByEmail(email: string): Promise<Partner | null> {
+	throw new Error('Method not implemented. Please implement getPartnerByEmail in PartnersRepository.');
+
+	/**
+	 * @Claude
+	 * Implementation using partner service to retrieve the member by email address
+	 * Then look up the partner by the memberId
+	 */
+  }
+
+  /**
    * Update partner
    */
   async updatePartner(updates: Partial<Partner> & { _id: string }): Promise<Partner> {
     return await this.update(updates);
   }
-
 
   /**
    * Hard delete partner (removes from collection)
@@ -59,6 +72,9 @@ export class PartnersRepository extends WixCollectionsRepository<Partner> {
     status?: Partner['status'];
     companyName?: string;
     email?: string;
+    memberId?: string;
+    minDiscount?: number;
+    maxDiscount?: number;
     limit?: number;
     skip?: number;
   }, options?: DataOperationOptions): Promise<Partner[]> {
@@ -75,7 +91,24 @@ export class PartnersRepository extends WixCollectionsRepository<Partner> {
       }
       
       if (filters.email) {
-        query = query.eq('contactInfo.email', filters.email);
+		throw new Error('Method not implemented. Please implement search Member by emails in PartnersRepository.');
+		/**
+		 * @Claude
+		 * Implementation using  wix members API and querying the members by email address
+		 * Then look up the partner by the memberId
+		 */
+      }
+
+      if (filters.memberId) {
+        query = query.eq('memberId', filters.memberId);
+      }
+
+      if (filters.minDiscount !== undefined) {
+        query = query.ge('globalDiscountPercentage', filters.minDiscount);
+      }
+
+      if (filters.maxDiscount !== undefined) {
+        query = query.le('globalDiscountPercentage', filters.maxDiscount);
       }
 
       // Apply pagination
@@ -91,6 +124,41 @@ export class PartnersRepository extends WixCollectionsRepository<Partner> {
       return result.items as unknown as Partner[];
     } catch (error) {
       throw this.handleWixError(error, 'searchPartners', this.collectionName);
+    }
+  }
+
+  /**
+   * Count partners by status
+   */
+  async countPartnersByStatus(status: Partner['status'], options?: DataOperationOptions): Promise<number> {
+    return await this.countByField('status', status, options);
+  }
+
+  /**
+   * Check if email is already used by another partner
+   */
+  async isEmailTaken(email: string, excludePartnerId?: string): Promise<boolean> {
+    throw new Error('Method not implemented. Please implement isEmailTaken in PartnersRepository.');
+	try {
+     /**
+	  * @Claude
+	  * Implementation using  wix members API and querying the members by email address and count number of members with that email
+	  */
+    } catch (error) {
+      throw this.handleWixError(error, 'isEmailTaken', this.collectionName);
+    }
+  }
+
+  /**
+   * Check if wixMemberId is already used by another partner
+   */
+  async isMemberIdTaken(memberId: string): Promise<boolean> {
+    try {
+      const partners = await this.findByField('memberId', memberId);
+      
+      return partners.length > 0;
+    } catch (error) {
+      throw this.handleWixError(error, 'isMemberIdTaken', this.collectionName);
     }
   }
 }
