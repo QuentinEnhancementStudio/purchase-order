@@ -12,6 +12,8 @@ export enum ErrorCategory {
   TIMEOUT = 'timeout',              // Request timeouts
   CONFIGURATION = 'configuration',   // Missing/invalid config
   SYSTEM = 'system',                // System-level failures
+  WIXPLATFORM = 'wix_platform',     // Wix platform API errors
+  WIXDATA = 'wix_data',             // Wix Data API errors
   UNKNOWN = 'unknown'               // Unclassified exceptions
 }
 
@@ -46,6 +48,8 @@ export const getCategoryDisplayName = (category: ErrorCategory): string => {
     [ErrorCategory.TIMEOUT]: 'Timeout Error',
     [ErrorCategory.CONFIGURATION]: 'Configuration Error',
     [ErrorCategory.SYSTEM]: 'System Error',
+    [ErrorCategory.WIXPLATFORM]: 'Wix Platform Error',
+    [ErrorCategory.WIXDATA]: 'Wix Data Error',
     [ErrorCategory.UNKNOWN]: 'Unknown Error'
   };
   

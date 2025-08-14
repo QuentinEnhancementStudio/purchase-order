@@ -1,6 +1,9 @@
 import { items as dataItems } from '@wix/data';
 import { auth } from '@wix/essentials';
-import { WixEntity, DataOperationOptions, WixDataError } from '../../types/base-entity';
+import { WixEntity, DataOperationOptions } from '../../types/base-entity';
+import { AppError } from '../../../dashboard/services/AppError/AppError';
+import { ErrorCategory, ErrorSeverity } from '../../../dashboard/services/AppError/ErrorCategories';
+import { WixDataErrorCode } from '../../../dashboard/services/AppError/ErrorCodes';
 
 /**
  * Generic CRUD repository for Wix Data collections
@@ -58,7 +61,7 @@ export abstract class WixCollectionsRepository<T extends WixEntity> {
       const result = await this.elevatedInsert(this.collectionName, item as any, options);
       return result as unknown as T;
     } catch (error) {
-      throw this.handleWixError(error, 'create');
+      throw this.createWixDataError(error, 'create');
     }
   }
 
@@ -75,7 +78,7 @@ export abstract class WixCollectionsRepository<T extends WixEntity> {
       if (error.code === 'WDE0002' || error.code === 'WDE0011') {
         return null; // Item not found
       }
-      throw this.handleWixError(error, 'findById', id);
+      throw this.createWixDataError(error, 'findById', id);
     }
   }
 
@@ -90,7 +93,7 @@ export abstract class WixCollectionsRepository<T extends WixEntity> {
         .find(options);
       return result.items as unknown as T[];
     } catch (error) {
-      throw this.handleWixError(error, 'findAll');
+      throw this.createWixDataError(error, 'findAll');
     }
   }
 
@@ -107,7 +110,7 @@ export abstract class WixCollectionsRepository<T extends WixEntity> {
       const result = await this.elevatedUpdate(this.collectionName, item as any, options);
       return result as unknown as T;
     } catch (error) {
-      throw this.handleWixError(error, 'update', item._id);
+      throw this.createWixDataError(error, 'update', item._id);
     }
   }
 
@@ -121,7 +124,7 @@ export abstract class WixCollectionsRepository<T extends WixEntity> {
       const result = await this.elevatedRemove(this.collectionName, id, options);
       return result as unknown as T;
     } catch (error) {
-      throw this.handleWixError(error, 'remove', id);
+      throw this.createWixDataError(error, 'remove', id);
     }
   }
 
@@ -144,7 +147,7 @@ export abstract class WixCollectionsRepository<T extends WixEntity> {
         .find(options);
       return result.items as unknown as T[];
     } catch (error) {
-      throw this.handleWixError(error, 'findByField');
+      throw this.createWixDataError(error, 'findByField');
     }
   }
 
@@ -161,7 +164,7 @@ export abstract class WixCollectionsRepository<T extends WixEntity> {
         .find(options);
       return result.items[0] as unknown as T || null;
     } catch (error) {
-      throw this.handleWixError(error, 'findOneByField');
+      throw this.createWixDataError(error, 'findOneByField');
     }
   }
 
@@ -174,7 +177,7 @@ export abstract class WixCollectionsRepository<T extends WixEntity> {
     try {
       return await this.query().count(options);
     } catch (error) {
-      throw this.handleWixError(error, 'count');
+      throw this.createWixDataError(error, 'count');
     }
   }
 
@@ -189,53 +192,209 @@ export abstract class WixCollectionsRepository<T extends WixEntity> {
         .eq(field, value)
         .count(options);
     } catch (error) {
-      throw this.handleWixError(error, 'countByField');
+      throw this.createWixDataError(error, 'countByField');
     }
   }
 
   /**
-   * Handle Wix Data errors with context-based error handling
+   * Map Wix error codes to AppError codes
    */
-  public handleWixError(
-    error: any, 
-    operation?: string, 
-    itemId?: string
-  ): WixDataError {
-    // Auto-detect calling method from stack trace
-    const stack = new Error().stack;
-    const callerMatch = stack?.split('\n')[3]?.match(/at \w+\.(\w+)/);
-    const method = callerMatch?.[1] || 'unknown';
+  private mapWixErrorCode(wixCode: string): WixDataErrorCode | undefined {
+    const mapping: Record<string, WixDataErrorCode> = {
+      // Collection errors
+      'WDE0001': 'WIXDATA.COLLECTION.INVALID_NAME',
+      'WDE0025': 'WIXDATA.COLLECTION.NOT_FOUND',
+      'WDE0026': 'WIXDATA.COLLECTION.REMOVED',
+      'WDE0027': 'WIXDATA.COLLECTION.PERMISSION_DENIED',
+      'WDE0052': 'WIXDATA.COLLECTION.TEMPLATE_MODE',
+      'WDE0144': 'WIXDATA.COLLECTION.PERMISSION_DENIED',
+      'WDE0171': 'WIXDATA.COLLECTION.NOT_INSTALLED',
+      'WDE0177': 'WIXDATA.COLLECTION.PERMISSION_DENIED',
+
+      // Item errors
+      'WDE0002': 'WIXDATA.ITEM.NOT_FOUND',
+      'WDE0004': 'WIXDATA.ITEM.INVALID_DATA',
+      'WDE0005': 'WIXDATA.ITEM.INVALID_DATA',
+      'WDE0007': 'WIXDATA.ITEM.INVALID_DATA',
+      'WDE0009': 'WIXDATA.ITEM.TOO_LARGE',
+      'WDE0068': 'WIXDATA.ITEM.INVALID_ID',
+      'WDE0073': 'WIXDATA.ITEM.NOT_FOUND',
+      'WDE0074': 'WIXDATA.ITEM.ALREADY_EXISTS',
+      'WDE0079': 'WIXDATA.ITEM.INVALID_ID',
+      'WDE0109': 'WIXDATA.ITEM.TOO_LARGE',
+      'WDE0168': 'WIXDATA.ITEM.NESTING_TOO_DEEP',
+      'WDE0178': 'WIXDATA.ITEM.INVALID_REVISION',
+      'WDE0180': 'WIXDATA.ITEM.TOO_LARGE',
+
+      // Query errors
+      'WDE0008': 'WIXDATA.QUERY.INVALID_PARAMETERS',
+      'WDE0011': 'WIXDATA.QUERY.INVALID_FILTER',
+      'WDE0016': 'WIXDATA.QUERY.INVALID_FILTER',
+      'WDE0028': 'WIXDATA.QUERY.TIMEOUT',
+      'WDE0032': 'WIXDATA.QUERY.INVALID_PARAMETERS',
+      'WDE0033': 'WIXDATA.QUERY.INVALID_PARAMETERS',
+      'WDE0034': 'WIXDATA.QUERY.INVALID_PARAMETERS',
+      'WDE0035': 'WIXDATA.QUERY.INVALID_PARAMETERS',
+      'WDE0036': 'WIXDATA.QUERY.INVALID_PARAMETERS',
+      'WDE0037': 'WIXDATA.QUERY.INVALID_PARAMETERS',
+      'WDE0038': 'WIXDATA.QUERY.INVALID_PARAMETERS',
+      'WDE0039': 'WIXDATA.QUERY.INVALID_PARAMETERS',
+      'WDE0040': 'WIXDATA.QUERY.INVALID_PARAMETERS',
+      'WDE0041': 'WIXDATA.QUERY.INVALID_PARAMETERS',
+      'WDE0042': 'WIXDATA.QUERY.INVALID_PARAMETERS',
+      'WDE0043': 'WIXDATA.QUERY.INVALID_PARAMETERS',
+      'WDE0044': 'WIXDATA.QUERY.INVALID_PARAMETERS',
+      'WDE0045': 'WIXDATA.QUERY.INVALID_PARAMETERS',
+      'WDE0046': 'WIXDATA.QUERY.INVALID_PARAMETERS',
+      'WDE0047': 'WIXDATA.QUERY.INVALID_PARAMETERS',
+      'WDE0048': 'WIXDATA.QUERY.INVALID_PARAMETERS',
+      'WDE0049': 'WIXDATA.QUERY.INVALID_PARAMETERS',
+      'WDE0050': 'WIXDATA.QUERY.INVALID_PARAMETERS',
+      'WDE0051': 'WIXDATA.QUERY.INVALID_PARAMETERS',
+      'WDE0065': 'WIXDATA.QUERY.SORT_ERROR',
+      'WDE0066': 'WIXDATA.QUERY.SORT_ERROR',
+      'WDE0067': 'WIXDATA.QUERY.SORT_ERROR',
+      'WDE0080': 'WIXDATA.QUERY.INVALID_PARAMETERS',
+      'WDE0092': 'WIXDATA.QUERY.TOO_LARGE',
+      'WDE0093': 'WIXDATA.QUERY.INVALID_FILTER',
+      'WDE0121': 'WIXDATA.QUERY.SORT_ERROR',
+      'WDE0151': 'WIXDATA.QUERY.PAGINATION_ERROR',
+      'WDE0152': 'WIXDATA.QUERY.PAGINATION_ERROR',
+      'WDE0159': 'WIXDATA.QUERY.PAGINATION_ERROR',
+      'WDE0165': 'WIXDATA.QUERY.PAGINATION_ERROR',
+      'WDE0169': 'WIXDATA.QUERY.FILTER_TOO_DEEP',
+      'WDE0190': 'WIXDATA.QUERY.SEARCH_NOT_ENABLED',
+
+      // System errors
+      'WDE0014': 'WIXDATA.SYSTEM.QUOTA_EXCEEDED',
+      'WDE0053': 'WIXDATA.SYSTEM.UNKNOWN_ERROR',
+      'WDE0054': 'WIXDATA.SYSTEM.UNKNOWN_ERROR',
+      'WDE0055': 'WIXDATA.SYSTEM.PARSE_ERROR',
+      'WDE0078': 'WIXDATA.SYSTEM.HOOK_ERROR',
+      'WDE0091': 'WIXDATA.SYSTEM.QUOTA_EXCEEDED',
+      'WDE0111': 'WIXDATA.SYSTEM.CONFIGURATION_ERROR',
+      'WDE0115': 'WIXDATA.SYSTEM.UNKNOWN_ERROR',
+      'WDE0116': 'WIXDATA.EXTERNAL.RESPONSE_ERROR',
+      'WDE0117': 'WIXDATA.SYSTEM.CONFIGURATION_ERROR',
+      'WDE0118': 'WIXDATA.SYSTEM.CONFIGURATION_ERROR',
+      'WDE0150': 'WIXDATA.SYSTEM.HOOK_ERROR',
+      'WDE0172': 'WIXDATA.SYSTEM.HOOK_ERROR',
+      'WDE0179': 'WIXDATA.SYSTEM.SANDBOX_DISABLED',
+
+      // Validation errors
+      'WDE0024': 'WIXDATA.VALIDATION.FIELD_DELETED',
+      'WDE0056': 'WIXDATA.VALIDATION.FIELD_ERROR',
+      'WDE0057': 'WIXDATA.VALIDATION.FIELD_ERROR',
+      'WDE0058': 'WIXDATA.VALIDATION.FIELD_ERROR',
+      'WDE0059': 'WIXDATA.VALIDATION.FIELD_ERROR',
+      'WDE0060': 'WIXDATA.VALIDATION.FIELD_ERROR',
+      'WDE0061': 'WIXDATA.VALIDATION.FIELD_ERROR',
+      'WDE0062': 'WIXDATA.VALIDATION.FIELD_ERROR',
+      'WDE0063': 'WIXDATA.VALIDATION.FIELD_ERROR',
+      'WDE0064': 'WIXDATA.VALIDATION.FIELD_ERROR',
+      'WDE0076': 'WIXDATA.VALIDATION.APP_VALIDATION',
+      'WDE0094': 'WIXDATA.VALIDATION.FIELD_ERROR',
+      'WDE0123': 'WIXDATA.VALIDATION.UNIQUE_CONSTRAINT',
+      'WDE0133': 'WIXDATA.VALIDATION.INDEX_ERROR',
+      'WDE0134': 'WIXDATA.VALIDATION.FIELD_NAME_INVALID',
+      'WDE0160': 'WIXDATA.VALIDATION.INDEX_ERROR',
+      'WDE0164': 'WIXDATA.VALIDATION.INDEX_ERROR',
+      'WDE0176': 'WIXDATA.VALIDATION.INDEX_ERROR',
+
+      // Reference errors
+      'WDE0019': 'WIXDATA.REFERENCE.INVALID',
+      'WDE0020': 'WIXDATA.REFERENCE.INVALID',
+      'WDE0021': 'WIXDATA.REFERENCE.INVALID',
+      'WDE0029': 'WIXDATA.REFERENCE.ALREADY_EXISTS',
+      'WDE0153': 'WIXDATA.REFERENCE.NOT_EXISTS',
+
+      // External database errors
+      'WDE0120': 'WIXDATA.EXTERNAL.NOT_SUPPORTED',
+      'WDE0128': 'WIXDATA.EXTERNAL.NO_ID',
+      'WDE0131': 'WIXDATA.EXTERNAL.CONNECTION_ERROR',
+      'WDE0170': 'WIXDATA.EXTERNAL.NOT_SUPPORTED',
+
+      // Multilingual errors
+      'WDE0157': 'WIXDATA.MULTILINGUAL.FIELD_ERROR',
+      'WDE0158': 'WIXDATA.MULTILINGUAL.FIELD_ERROR',
+      'WDE0161': 'WIXDATA.MULTILINGUAL.NOT_ENABLED',
+      'WDE0162': 'WIXDATA.MULTILINGUAL.LANGUAGE_ERROR',
+      'WDE0174': 'WIXDATA.MULTILINGUAL.NOT_SUPPORTED',
+      'WDE0175': 'WIXDATA.MULTILINGUAL.UPDATE_RESTRICTED',
+    };
     
-    // Build context for better debugging
+    return mapping[wixCode];
+  }
+
+  /**
+   * Get severity for Wix error code
+   */
+  private getSeverityForWixError(wixCode: string): ErrorSeverity {
+    switch (wixCode) {
+      // Not found errors - Low severity
+      case 'WDE0002':
+      case 'WDE0073':
+        return ErrorSeverity.LOW;
+      
+      // Permission and validation errors - Medium severity
+      case 'WDE0027':
+      case 'WDE0144':
+      case 'WDE0177':
+      case 'WDE0123':
+      case 'WDE0076':
+        return ErrorSeverity.MEDIUM;
+      
+      // System limits and timeouts - High severity
+      case 'WDE0014':
+      case 'WDE0028':
+      case 'WDE0091':
+      case 'WDE0092':
+      case 'WDE0172':
+        return ErrorSeverity.HIGH;
+      
+      // Unknown system errors - Fatal severity
+      case 'WDE0053':
+      case 'WDE0054':
+      case 'WDE0115':
+      case 'WDE0116':
+        return ErrorSeverity.FATAL;
+      
+      // Default to Medium for other errors
+      default:
+        return ErrorSeverity.MEDIUM;
+    }
+  }
+
+  /**
+   * Create AppError from Wix Data errors with comprehensive mapping
+   */
+  protected createWixDataError(
+    error: any,
+    operation: string,
+    itemId?: string
+  ): AppError {
     const context = {
-      operation: operation || 'unknown',
+      operation,
       collection: this.collectionName,
       itemId,
-      method
+      wixErrorCode: error.code,
+      originalMessage: error.message,
+      wixErrorDescription: error.description,
+      wixErrorData: error.data
     };
+
+    // Map Wix error codes to AppError codes
+    const errorCode = this.mapWixErrorCode(error.code);
     
-    // Create enhanced error message with location context
-    const location = `${context.collection}.${context.method}(${context.operation}${context.itemId ? `, id: ${context.itemId}` : ''})`;
-    const enhancedMessage = `${location}: ${error.message || 'Database operation failed'}`;
-    
-    console.error('Wix Data error:', {
-      location,
+    return new AppError({
+      category: ErrorCategory.WIXDATA,
+      code: errorCode,
+      technicalMessage: error.message || 'Wix Data operation failed',
+      source: `${this.collectionName}.${operation}`,
       context,
-      error
+      severity: this.getSeverityForWixError(error.code),
+      layer: 'Repository'
     });
-    
-    const wixError: WixDataError = {
-      name: 'WixDataError',
-      message: enhancedMessage,
-      code: error.code || 'UNKNOWN_ERROR',
-      description: error.description,
-      data: {
-        ...error.data,
-        context
-      }
-    };
-    
-    return wixError;
   }
 
   /**

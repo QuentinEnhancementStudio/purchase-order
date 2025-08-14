@@ -25,7 +25,7 @@ export const queryMembers = webMethod(
 		
 		appError.log();
 
-		throw appError;
+		return Promise.reject(appError.toJSON());
 	}
 }
 );
@@ -51,7 +51,7 @@ export const getMemberById = webMethod(
 
 		  appError.log();
 		  
-		  throw appError;
+		return Promise.reject(appError.toJSON());
 	  }
   }
 );

@@ -31,6 +31,7 @@ export interface WrapErrorConfig extends Partial<AppErrorConfig> {
  * Serialized error data for logging and transmission
  */
 export interface SerializedAppError {
+  isAppError: boolean;  // Flag to identify serialized AppError instances
   id: string;
   category: ErrorCategory;
   code?: ErrorCode;     // Error code for precise identification
@@ -160,9 +161,9 @@ export class AppError extends Error {
    */
   static wrap(error: Error | AppError, config: WrapErrorConfig): AppError {
     // Extract immutable properties from existing AppError
-    const existingId = error instanceof AppError ? error.id : undefined;
-    const existingCategory = error instanceof AppError ? error.category : undefined;
-    const existingCode = error instanceof AppError ? error.code : undefined;
+    const existingId = AppError.isAppError(error) ? error.id : undefined;
+    const existingCategory = AppError.isAppError(error) ? error.category : undefined;
+    const existingCode = AppError.isAppError(error) ? error.code : undefined;
 
     return new AppError({
       // IMMUTABLE: Preserve existing ID, category, and code - never override
@@ -190,6 +191,65 @@ export class AppError extends Error {
       ...config,
       cause: error
     });
+  }
+
+  /**
+   * Reconstruct AppError from serialized JSON data
+   * Recursively reconstructs cause chain if present
+   */
+  static fromJSON(data: SerializedAppError): AppError {
+    // Validate required fields
+    if (!data || typeof data !== 'object') {
+      throw new Error('AppError.fromJSON: Invalid serialized data - must be an object');
+    }
+    
+    if (!data.isAppError) {
+      throw new Error('AppError.fromJSON: Data is not a serialized AppError - missing isAppError flag');
+    }
+    
+    if (!data.id || !data.category || !data.technicalMessage) {
+      throw new Error('AppError.fromJSON: Missing required fields (id, category, technicalMessage)');
+    }
+    
+    // Validate category
+    if (!Object.values(ErrorCategory).includes(data.category)) {
+      throw new Error(`AppError.fromJSON: Invalid category '${data.category}'`);
+    }
+    
+    // Validate code if present
+    if (data.code && !isValidErrorCode(data.code)) {
+      throw new Error(`AppError.fromJSON: Invalid error code '${data.code}'`);
+    }
+    
+    // Validate severity
+    if (!Object.values(ErrorSeverity).includes(data.severity)) {
+      throw new Error(`AppError.fromJSON: Invalid severity '${data.severity}'`);
+    }
+    
+    // Reconstruct cause chain recursively
+    let reconstructedCause: AppError | undefined;
+    if (data.cause) {
+      reconstructedCause = AppError.fromJSON(data.cause);
+    }
+    
+    // Create the AppError instance
+    const appError = new AppError({
+      id: data.id,
+      category: data.category,
+      code: data.code,
+      userMessage: data.userMessage || undefined,
+      technicalMessage: data.technicalMessage,
+      source: data.source,
+      context: data.context,
+      severity: data.severity,
+      layer: data.layer,
+      cause: reconstructedCause
+    });
+    
+    // Restore timestamp
+    (appError as any).timestamp = new Date(data.timestamp);
+    
+    return appError;
   }
 
   // ========== TYPE GUARDS ==========
@@ -352,6 +412,7 @@ export class AppError extends Error {
    */
   toJSON(): SerializedAppError {
     return {
+      isAppError: true,
       id: this.id,
       category: this.category,
       code: this.code,
@@ -362,7 +423,7 @@ export class AppError extends Error {
       severity: this.severity,
       layer: this.layer,
       timestamp: this.timestamp.toISOString(),
-      stack: this.stack,
+      //stack: this.stack,
       cause: this.cause instanceof AppError ? this.cause.toJSON() : null
     };
   }
@@ -375,6 +436,7 @@ export class AppError extends Error {
     
     // Create safe version without context and stack
     const safe: Omit<SerializedAppError, 'context' | 'stack'> = {
+      isAppError: full.isAppError,
       id: full.id,
       category: full.category,
       code: full.code,
@@ -398,6 +460,7 @@ export class AppError extends Error {
     if (!cause) return null;
     
     return {
+      isAppError: cause.isAppError,
       id: cause.id,
       category: cause.category,
       code: cause.code,

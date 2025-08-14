@@ -4,8 +4,8 @@ import { z } from 'zod';
 // Common Wix entity metadata schema
 export const WixEntityMetadataSchema = z.object({
   _id: z.string().min(1, 'ID is required'),
-  _createdDate: z.date(),
-  _updatedDate: z.date(),
+  _createdDate: z.coerce.date(),
+  _updatedDate: z.coerce.date(),
   _owner: z.string().optional()
 });
 

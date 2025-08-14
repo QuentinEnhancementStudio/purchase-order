@@ -38,6 +38,7 @@
     "preview": "wix app preview",
     "generate": "wix app generate",
     "logs": "wix app logs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "dev-preview": "npm run build && npm run preview | tee /tmp/preview.log && URL=$(awk '/Dashboard \\(/,/\\)/ {print}' /tmp/preview.log | tr -d '\\n' | sed -n 's/.*(\\(https[^)]*\\)).*/\\1/p' | tr -d ' ' | sed 's/onthe//g') && sleep 3 && open -a \"Google Chrome\" \"$URL\" && afplay /System/Library/Sounds/Ping.aiff"
   }
 }

@@ -46,14 +46,33 @@ export class MembersStore {
               }
             },
             rejected: (error: any) => {
-              this.error = AppError.wrap(error, {
-                category: ErrorCategory.SERVER,
-                userMessage: 'Failed to load members',
-                technicalMessage: `Error loading members: ${error?.message || 'Unknown error'}`,
-                source: 'MembersStore.loadMembers',
-                layer: 'Store',
-                context: { operation: 'loadMembers' }
-              });
+              // Check if this is a serialized AppError from backend
+              if (error && typeof error === 'object' && error.isAppError) {
+                try {
+                  this.error = AppError.fromJSON(error);
+                } catch (reconstructionError) {
+                  // Fallback to wrapping if reconstruction fails
+                  console.warn('Failed to reconstruct AppError from backend:', reconstructionError);
+                  this.error = AppError.wrap(error, {
+                    category: ErrorCategory.SERVER,
+                    userMessage: 'Failed to load members',
+                    technicalMessage: `Error loading members: ${error?.message || 'Unknown error'}`,
+                    source: 'MembersStore.loadMembers',
+                    layer: 'Store',
+                    context: { operation: 'loadMembers' }
+                  });
+                }
+              } else {
+                // Wrap non-AppError instances as before
+                this.error = AppError.wrap(error, {
+                  category: ErrorCategory.SERVER,
+                  userMessage: 'Failed to load members',
+                  technicalMessage: `Error loading members: ${error?.message || 'Unknown error'}`,
+                  source: 'MembersStore.loadMembers',
+                  layer: 'Store',
+                  context: { operation: 'loadMembers' }
+                });
+              }
             }
           });
         }

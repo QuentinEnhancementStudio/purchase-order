@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { WixEntityMetadataSchema } from '../../services/validation';
 
 // Constraint constants - single source of truth
 export const FIRST_NAME_MAX_LENGTH = 100;
@@ -37,6 +36,8 @@ export const MemberBaseSchema = z.object({
     lastName: LastNameSchema.optional(),
   }).optional(),
   status: MemberStatusSchema,
+  _createdDate: z.coerce.date(),
+  _updatedDate: z.coerce.date(),
 }).transform((data) => ({
   ...data,
   profile: {
@@ -47,8 +48,8 @@ export const MemberBaseSchema = z.object({
   }
 }));
 
-// Base Member Schema (for full member entity with Wix metadata)
-export const MemberSchema = MemberBaseSchema.and(WixEntityMetadataSchema);
+// Member Schema (complete member entity)
+export const MemberSchema = MemberBaseSchema;
 
 // Export inferred types
 export type Member = z.infer<typeof MemberSchema>;

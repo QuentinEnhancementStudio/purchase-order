@@ -57,14 +57,33 @@ export class PartnersStore {
               }
             },
             rejected: (error: any) => {
-              this.error = AppError.wrap(error, {
-                category: ErrorCategory.SERVER,
-                userMessage: 'Failed to load partners',
-                technicalMessage: `Error loading partners: ${error?.message || 'Unknown error'}`,
-                source: 'PartnersStore.loadPartners',
-                layer: 'Store',
-                context: { operation: 'loadPartners' }
-              });
+              // Check if this is a serialized AppError from backend
+              if (error && typeof error === 'object' && error.isAppError) {
+                try {
+                  this.error = AppError.fromJSON(error);
+                } catch (reconstructionError) {
+                  // Fallback to wrapping if reconstruction fails
+                  console.warn('Failed to reconstruct AppError from backend:', reconstructionError);
+                  this.error = AppError.wrap(error, {
+                    category: ErrorCategory.SERVER,
+                    userMessage: 'Failed to load partners',
+                    technicalMessage: `Error loading partners: ${error?.message || 'Unknown error'}`,
+                    source: 'PartnersStore.loadPartners',
+                    layer: 'Store',
+                    context: { operation: 'loadPartners' }
+                  });
+                }
+              } else {
+                // Wrap non-AppError instances as before
+                this.error = AppError.wrap(error, {
+                  category: ErrorCategory.SERVER,
+                  userMessage: 'Failed to load partners',
+                  technicalMessage: `Error loading partners: ${error?.message || 'Unknown error'}`,
+                  source: 'PartnersStore.loadPartners',
+                  layer: 'Store',
+                  context: { operation: 'loadPartners' }
+                });
+              }
             }
           });
         }
@@ -90,14 +109,33 @@ export class PartnersStore {
               }
             },
             rejected: (error: any) => {
-              this.error = AppError.wrap(error, {
-                category: ErrorCategory.SERVER,
-                userMessage: 'Failed to create partner',
-                technicalMessage: `Error creating partner: ${error?.message || 'Unknown error'}`,
-                source: 'PartnersStore.createPartner',
-                layer: 'Store',
-                context: { operation: 'createPartner' }
-              });
+              // Check if this is a serialized AppError from backend
+              if (error && typeof error === 'object' && error.isAppError) {
+                try {
+                  this.error = AppError.fromJSON(error);
+                } catch (reconstructionError) {
+                  // Fallback to wrapping if reconstruction fails
+                  console.warn('Failed to reconstruct AppError from backend:', reconstructionError);
+                  this.error = AppError.wrap(error, {
+                    category: ErrorCategory.SERVER,
+                    userMessage: 'Failed to create partner',
+                    technicalMessage: `Error creating partner: ${error?.message || 'Unknown error'}`,
+                    source: 'PartnersStore.createPartner',
+                    layer: 'Store',
+                    context: { operation: 'createPartner' }
+                  });
+                }
+              } else {
+                // Wrap non-AppError instances as before
+                this.error = AppError.wrap(error, {
+                  category: ErrorCategory.SERVER,
+                  userMessage: 'Failed to create partner',
+                  technicalMessage: `Error creating partner: ${error?.message || 'Unknown error'}`,
+                  source: 'PartnersStore.createPartner',
+                  layer: 'Store',
+                  context: { operation: 'createPartner' }
+                });
+              }
             }
           });
         }
@@ -123,14 +161,33 @@ export class PartnersStore {
               }
             },
             rejected: (error: any) => {
-              this.error = AppError.wrap(error, {
-                category: ErrorCategory.SERVER,
-                userMessage: 'Failed to update partner',
-                technicalMessage: `Error updating partner: ${error?.message || 'Unknown error'}`,
-                source: 'PartnersStore.updatePartner',
-                layer: 'Store',
-                context: { operation: 'updatePartner' }
-              });
+              // Check if this is a serialized AppError from backend
+              if (error && typeof error === 'object' && error.isAppError) {
+                try {
+                  this.error = AppError.fromJSON(error);
+                } catch (reconstructionError) {
+                  // Fallback to wrapping if reconstruction fails
+                  console.warn('Failed to reconstruct AppError from backend:', reconstructionError);
+                  this.error = AppError.wrap(error, {
+                    category: ErrorCategory.SERVER,
+                    userMessage: 'Failed to update partner',
+                    technicalMessage: `Error updating partner: ${error?.message || 'Unknown error'}`,
+                    source: 'PartnersStore.updatePartner',
+                    layer: 'Store',
+                    context: { operation: 'updatePartner' }
+                  });
+                }
+              } else {
+                // Wrap non-AppError instances as before
+                this.error = AppError.wrap(error, {
+                  category: ErrorCategory.SERVER,
+                  userMessage: 'Failed to update partner',
+                  technicalMessage: `Error updating partner: ${error?.message || 'Unknown error'}`,
+                  source: 'PartnersStore.updatePartner',
+                  layer: 'Store',
+                  context: { operation: 'updatePartner' }
+                });
+              }
             }
           });
         }
@@ -156,14 +213,33 @@ export class PartnersStore {
               }
             },
             rejected: (error: any) => {
-              this.error = AppError.wrap(error, {
-                category: ErrorCategory.SERVER,
-                userMessage: 'Failed to delete partner',
-                technicalMessage: `Error deleting partner: ${error?.message || 'Unknown error'}`,
-                source: 'PartnersStore.deletePartner',
-                layer: 'Store',
-                context: { operation: 'deletePartner' }
-              });
+              // Check if this is a serialized AppError from backend
+              if (error && typeof error === 'object' && error.isAppError) {
+                try {
+                  this.error = AppError.fromJSON(error);
+                } catch (reconstructionError) {
+                  // Fallback to wrapping if reconstruction fails
+                  console.warn('Failed to reconstruct AppError from backend:', reconstructionError);
+                  this.error = AppError.wrap(error, {
+                    category: ErrorCategory.SERVER,
+                    userMessage: 'Failed to delete partner',
+                    technicalMessage: `Error deleting partner: ${error?.message || 'Unknown error'}`,
+                    source: 'PartnersStore.deletePartner',
+                    layer: 'Store',
+                    context: { operation: 'deletePartner' }
+                  });
+                }
+              } else {
+                // Wrap non-AppError instances as before
+                this.error = AppError.wrap(error, {
+                  category: ErrorCategory.SERVER,
+                  userMessage: 'Failed to delete partner',
+                  technicalMessage: `Error deleting partner: ${error?.message || 'Unknown error'}`,
+                  source: 'PartnersStore.deletePartner',
+                  layer: 'Store',
+                  context: { operation: 'deletePartner' }
+                });
+              }
             }
           });
         }

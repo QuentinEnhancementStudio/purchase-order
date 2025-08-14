@@ -33,7 +33,7 @@ export class MembersService {
 
 			if (!member?.loginEmail) {
 				throw new AppError({
-					category: ErrorCategory.SERVER,
+					category: ErrorCategory.CONFIGURATION,
 					technicalMessage: `Member not found or has no login email: ${memberId}`,
 					userMessage: 'Member information could not be retrieved',
 					source: 'getEmailFromMemberId',
@@ -49,7 +49,7 @@ export class MembersService {
 			if (AppError.isAppError(error)) throw error
 
 			throw AppError.wrap(error as Error, {
-				category: ErrorCategory.SERVER,
+				category: ErrorCategory.WIXPLATFORM,
 				technicalMessage: `Failed to retrieve email for member ID: ${memberId}`,
 				userMessage: 'Unable to retrieve member information',
 				source: 'getEmailFromMemberId',
@@ -75,7 +75,7 @@ export class MembersService {
 		} catch (error) {
 			// Wrap other errors
 			throw AppError.wrap(error as Error, {
-				category: ErrorCategory.SERVER,
+				category: ErrorCategory.WIXPLATFORM,
 				technicalMessage: `Failed to retrieve member by ID: ${memberId}`,
 				userMessage: 'Unable to retrieve member information',
 				source: 'getMemberById',
@@ -111,7 +111,7 @@ export class MembersService {
 		} catch (error) {
 			// Wrap other errors
 			throw AppError.wrap(error as Error, {
-				category: ErrorCategory.SERVER,
+				category: ErrorCategory.WIXPLATFORM,
 				technicalMessage: 'Failed to fetch members list from Wix Members API',
 				userMessage: 'Unable to load member list',
 				source: 'getAllMembers',

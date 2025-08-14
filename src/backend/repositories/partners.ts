@@ -3,6 +3,12 @@ import { Partner, PartnerBase, PartnerBaseSchema} from '../entities/partner/sche
 import { WixCollectionsRepository } from './wix-data/wix-collections';
 import { DataOperationOptions } from '../types/base-entity';
 
+/**
+ * @claude
+ * TODO REVIEW the error system to include wraps not wrap error
+ * 
+ */
+
 export class PartnersRepository extends WixCollectionsRepository<Partner> {
   protected readonly collectionName = '@code-enhancement-studio/purchase-order/Partners';
   protected readonly debugEnabled = false;
@@ -123,7 +129,7 @@ export class PartnersRepository extends WixCollectionsRepository<Partner> {
       const result = await query.find(options);
       return result.items as unknown as Partner[];
     } catch (error) {
-      throw this.handleWixError(error, 'searchPartners', this.collectionName);
+      //todo
     }
   }
 
@@ -145,7 +151,7 @@ export class PartnersRepository extends WixCollectionsRepository<Partner> {
 	  * Implementation using  wix members API and querying the members by email address and count number of members with that email
 	  */
     } catch (error) {
-      throw this.handleWixError(error, 'isEmailTaken', this.collectionName);
+		//TODO
     }
   }
 
@@ -158,7 +164,7 @@ export class PartnersRepository extends WixCollectionsRepository<Partner> {
       
       return partners.length > 0;
     } catch (error) {
-      throw this.handleWixError(error, 'isMemberIdTaken', this.collectionName);
-    }
+		//TODO
+	}
   }
 }
