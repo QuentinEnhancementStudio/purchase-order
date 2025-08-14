@@ -51,7 +51,15 @@ export const queryPartners = webMethod(
 		try {
 			const validationResult = ValidationService.validate(QueryPartnersFiltersSchema, filters, 'Query filters');
 			if (!validationResult.success) {
-				throw new Error(`Invalid filters: ${validationResult.errors?.join(', ')}`);
+				throw new AppError({
+					category: ErrorCategory.INPUT,
+					technicalMessage: `Invalid filters: ${validationResult.errors?.join(', ')}`,
+					userMessage: 'Invalid filter parameters provided',
+					source: 'queryPartners',
+					layer: 'webMethod',
+					severity: ErrorSeverity.LOW,
+					context: { filters, validationErrors: validationResult.errors }
+				});
 			}
 
 			const validatedFilters = validationResult.data;
@@ -73,6 +81,13 @@ export const queryPartners = webMethod(
 			// Return all partners if no filters
 			return await partnersRepository.getAllPartners();
 		} catch (error) {
+			// If error is already an AppError, re-throw it
+			if (error instanceof AppError) {
+				error.log();
+				return Promise.reject(error.toJSON());
+			}
+
+			// Wrap other errors in AppError
 			const appError = new AppError({
 				category: ErrorCategory.SERVER,
 				technicalMessage: `Failed to query partners: ${error instanceof Error ? error.message : String(error)}`,
@@ -84,7 +99,6 @@ export const queryPartners = webMethod(
 			});
 
 			appError.log();
-
 			return Promise.reject(appError.toJSON());
 		}
 	}
@@ -99,7 +113,15 @@ export const getPartnerById = webMethod(
 		try {
 			const validationResult = ValidationService.validate(PartnerIdParamSchema, partnerId, 'Partner ID');
 			if (!validationResult.success) {
-				throw new Error(`Invalid partner ID: ${validationResult.errors?.join(', ')}`);
+				throw new AppError({
+					category: ErrorCategory.INPUT,
+					technicalMessage: `Invalid partner ID: ${validationResult.errors?.join(', ')}`,
+					userMessage: 'Invalid partner ID provided',
+					source: 'getPartnerById',
+					layer: 'webMethod',
+					severity: ErrorSeverity.LOW,
+					context: { partnerId, validationErrors: validationResult.errors }
+				});
 			}
 
 			const partner = await partnersRepository.getPartnerById(validationResult.data!);
@@ -109,6 +131,13 @@ export const getPartnerById = webMethod(
 
 			return partner;
 		} catch (error) {
+			// If error is already an AppError, re-throw it
+			if (error instanceof AppError) {
+				error.log();
+				return Promise.reject(error.toJSON());
+			}
+
+			// Wrap other errors in AppError
 			const appError = new AppError({
 				category: ErrorCategory.SERVER,
 				technicalMessage: `Failed to get partner by ID: ${error instanceof Error ? error.message : String(error)}`,
@@ -120,7 +149,6 @@ export const getPartnerById = webMethod(
 			});
 
 			appError.log();
-
 			return Promise.reject(appError.toJSON());
 		}
 	}
@@ -136,7 +164,15 @@ export const createPartner = webMethod(
 			// Validate input using PartnerCreateInputSchema
 			const validationResult = ValidationService.validate(PartnerBaseSchema, partnerData, 'Partner creation data');
 			if (!validationResult.success) {
-				throw new Error(`Validation failed: ${validationResult.errors?.join(', ')}`);
+				throw new AppError({
+					category: ErrorCategory.INPUT,
+					technicalMessage: `Validation failed: ${validationResult.errors?.join(', ')}`,
+					userMessage: 'Invalid partner data provided',
+					source: 'createPartner',
+					layer: 'webMethod',
+					severity: ErrorSeverity.LOW,
+					context: { partnerData, validationErrors: validationResult.errors }
+				});
 			}
 
 			const validatedInput = validationResult.data!;
@@ -161,6 +197,13 @@ export const createPartner = webMethod(
 			console.log(`Partner created successfully: ${partner.companyName} (${partner._id})`);
 			return partner;
 		} catch (error) {
+			// If error is already an AppError, re-throw it
+			if (error instanceof AppError) {
+				error.log();
+				return Promise.reject(error.toJSON());
+			}
+
+			// Wrap other errors in AppError
 			const appError = new AppError({
 				category: ErrorCategory.SERVER,
 				technicalMessage: `Failed to create partner: ${error instanceof Error ? error.message : String(error)}`,
@@ -172,7 +215,6 @@ export const createPartner = webMethod(
 			});
 
 			appError.log();
-
 			return Promise.reject(appError.toJSON());
 		}
 	}
@@ -188,7 +230,15 @@ export const updatePartner = webMethod(
 			// Validate complete partner object using Zod schema
 			const validationResult = ValidationService.validate(PartnerSchema, partner, 'Partner');
 			if (!validationResult.success) {
-				throw new Error(`Invalid partner data: ${validationResult.errors?.join(', ')}`);
+				throw new AppError({
+					category: ErrorCategory.INPUT,
+					technicalMessage: `Invalid partner data: ${validationResult.errors?.join(', ')}`,
+					userMessage: 'Invalid partner data provided',
+					source: 'updatePartner',
+					layer: 'webMethod',
+					severity: ErrorSeverity.LOW,
+					context: { partner, validationErrors: validationResult.errors }
+				});
 			}
 
 			const validatedPartner = validationResult.data!;
@@ -221,6 +271,13 @@ export const updatePartner = webMethod(
 			console.log(`Partner updated successfully: ${updatedPartner.companyName} (${updatedPartner._id})`);
 			return updatedPartner;
 		} catch (error) {
+			// If error is already an AppError, re-throw it
+			if (error instanceof AppError) {
+				error.log();
+				return Promise.reject(error.toJSON());
+			}
+
+			// Wrap other errors in AppError
 			const appError = new AppError({
 				category: ErrorCategory.SERVER,
 				technicalMessage: `Failed to update partner: ${error instanceof Error ? error.message : String(error)}`,
@@ -232,7 +289,6 @@ export const updatePartner = webMethod(
 			});
 
 			appError.log();
-
 			return Promise.reject(appError.toJSON());
 		}
 	}
@@ -248,7 +304,15 @@ export const deletePartner = webMethod(
 			// Validate partner ID using Zod schema
 			const validationResult = ValidationService.validate(PartnerIdParamSchema, partnerId, 'Partner ID');
 			if (!validationResult.success) {
-				throw new Error(`Invalid partner ID: ${validationResult.errors?.join(', ')}`);
+				throw new AppError({
+					category: ErrorCategory.INPUT,
+					technicalMessage: `Invalid partner ID: ${validationResult.errors?.join(', ')}`,
+					userMessage: 'Invalid partner ID provided',
+					source: 'deletePartner',
+					layer: 'webMethod',
+					severity: ErrorSeverity.LOW,
+					context: { partnerId, validationErrors: validationResult.errors }
+				});
 			}
 
 			const validatedPartnerId = validationResult.data!;
@@ -266,6 +330,13 @@ export const deletePartner = webMethod(
 
 			return deletedPartner;
 		} catch (error) {
+			// If error is already an AppError, re-throw it
+			if (error instanceof AppError) {
+				error.log();
+				return Promise.reject(error.toJSON());
+			}
+
+			// Wrap other errors in AppError
 			const appError = new AppError({
 				category: ErrorCategory.SERVER,
 				technicalMessage: `Failed to delete partner: ${error instanceof Error ? error.message : String(error)}`,
@@ -277,7 +348,6 @@ export const deletePartner = webMethod(
 			});
 
 			appError.log();
-
 			return Promise.reject(appError.toJSON());
 		}
 	}
@@ -301,7 +371,15 @@ export const searchPartners = webMethod(
 			// Validate search criteria using Zod schema
 			const validationResult = ValidationService.validate(SearchPartnersCriteriaSchema, searchCriteria, 'Search criteria');
 			if (!validationResult.success) {
-				throw new Error(`Invalid search criteria: ${validationResult.errors?.join(', ')}`);
+				throw new AppError({
+					category: ErrorCategory.INPUT,
+					technicalMessage: `Invalid search criteria: ${validationResult.errors?.join(', ')}`,
+					userMessage: 'Invalid search criteria provided',
+					source: 'searchPartners',
+					layer: 'webMethod',
+					severity: ErrorSeverity.LOW,
+					context: { searchCriteria, validationErrors: validationResult.errors }
+				});
 			}
 
 			const validatedCriteria = validationResult.data!;
@@ -337,6 +415,13 @@ export const searchPartners = webMethod(
 				hasPreviousPage: validatedCriteria.pagination.number > 1
 			};
 		} catch (error) {
+			// If error is already an AppError, re-throw it
+			if (error instanceof AppError) {
+				error.log();
+				return Promise.reject(error.toJSON());
+			}
+
+			// Wrap other errors in AppError
 			const appError = new AppError({
 				category: ErrorCategory.SERVER,
 				technicalMessage: `Failed to search partners: ${error instanceof Error ? error.message : String(error)}`,
@@ -348,7 +433,6 @@ export const searchPartners = webMethod(
 			});
 
 			appError.log();
-
 			return Promise.reject(appError.toJSON());
 		}
 	}
@@ -388,6 +472,13 @@ export const getPartnerStats = webMethod(
 				averageDiscount: Math.round(averageDiscount * 100) / 100 // Round to 2 decimal places
 			};
 		} catch (error) {
+			// If error is already an AppError, re-throw it
+			if (error instanceof AppError) {
+				error.log();
+				return Promise.reject(error.toJSON());
+			}
+
+			// Wrap other errors in AppError
 			const appError = new AppError({
 				category: ErrorCategory.SERVER,
 				technicalMessage: `Failed to get partner statistics: ${error instanceof Error ? error.message : String(error)}`,
@@ -399,7 +490,6 @@ export const getPartnerStats = webMethod(
 			});
 
 			appError.log();
-
 			return Promise.reject(appError.toJSON());
 		}
 	}

@@ -8,6 +8,7 @@ export enum ErrorCategory {
   AUTHORIZATION = 'authorization',   // Permission denied
   SERVER = 'server',                 // Backend/database errors
   CLIENT = 'client',                 // Frontend runtime errors
+  INPUT = 'input',                   // Invalid input/validation errors
   RATE_LIMIT = 'rate_limit',        // API rate limiting
   TIMEOUT = 'timeout',              // Request timeouts
   CONFIGURATION = 'configuration',   // Missing/invalid config
@@ -44,6 +45,7 @@ export const getCategoryDisplayName = (category: ErrorCategory): string => {
     [ErrorCategory.AUTHORIZATION]: 'Authorization Error',
     [ErrorCategory.SERVER]: 'Server Error',
     [ErrorCategory.CLIENT]: 'Client Error',
+    [ErrorCategory.INPUT]: 'Input Validation Error',
     [ErrorCategory.RATE_LIMIT]: 'Rate Limit Error',
     [ErrorCategory.TIMEOUT]: 'Timeout Error',
     [ErrorCategory.CONFIGURATION]: 'Configuration Error',

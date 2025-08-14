@@ -37,8 +37,28 @@ export const getMemberById = webMethod(
 	Permissions.Admin,
 	async (memberId: string): Promise<Member | null> => {
 	  try {
+		  // Validate memberId is provided
+		  if (!memberId || memberId.trim() === '') {
+			  throw new AppError({
+				  category: ErrorCategory.INPUT,
+				  technicalMessage: 'Member ID is required',
+				  userMessage: 'Member ID is required',
+				  source: 'getMemberById',
+				  layer: 'webMethod',
+				  severity: ErrorSeverity.LOW,
+				  context: { memberId }
+			  });
+		  }
+
 		  return MemberService.getMemberById(memberId);
 	  } catch (error) {
+		  // If error is already an AppError, re-throw it
+		  if (error instanceof AppError) {
+			  error.log();
+			  return Promise.reject(error.toJSON());
+		  }
+
+		  // Wrap other errors in AppError
 		  const appError = new AppError({
 			  category: ErrorCategory.SERVER,
 			  technicalMessage: `Failed to get member by ID: ${error instanceof Error ? error.message : String(error)}`,
@@ -50,8 +70,7 @@ export const getMemberById = webMethod(
 		  });
 
 		  appError.log();
-		  
-		return Promise.reject(appError.toJSON());
+		  return Promise.reject(appError.toJSON());
 	  }
   }
 );
