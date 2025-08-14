@@ -11,7 +11,6 @@ import {
   Box,
   Pagination,
   TableActionCell,
-  Loader,
   EmptyState
 } from '@wix/design-system';
 import * as Icons from '@wix/wix-ui-icons-common';
@@ -36,8 +35,7 @@ export const PartnersTable: React.FC<PartnersTableProps> = observer(({
   onPageChange,
   onAddPartner,
   onEditPartner,
-  onDeletePartner,
-  onChangeStatus
+  onDeletePartner
 }) => {
   const handleSort = (field: SortField) => {
     const newDirection: SortDirection = 
@@ -133,12 +131,6 @@ export const PartnersTable: React.FC<PartnersTableProps> = observer(({
             onClick: () => onEditPartner(partner)
           }}
           secondaryActions={[
-            {
-              text: 'Change Status',
-icon: <Icons.Edit />,
-              onClick: () => onChangeStatus(partner)
-            },
-            { divider: true },
             {
               text: 'Delete',
               icon: <Icons.DeleteSmall />,

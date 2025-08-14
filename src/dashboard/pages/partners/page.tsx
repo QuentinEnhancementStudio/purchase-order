@@ -22,8 +22,6 @@ const PartnersPage: FC = observer(() => {
 
 	// React state for non-reactive values
 	const [successMessage, setSuccessMessage] = useState<string | null>(null);
-	const [confirmationType, setConfirmationType] = useState<'delete' | 'status-change'>('delete');
-	const [pendingStatus, setPendingStatus] = useState<PartnerStatus>('active');
 
 	// MobX reactive state for values that benefit from reactivity
 	const localState = useLocalObservable(() => ({
@@ -189,14 +187,6 @@ const PartnersPage: FC = observer(() => {
 
 	function handleDeletePartner(partner: Partner) {
 		localState.confirmationPartner = partner;
-		setConfirmationType('delete');
-		localState.isConfirmationModalOpen = true;
-	}
-
-	function handleChangeStatus(partner: Partner) {
-		localState.confirmationPartner = partner;
-		setConfirmationType('status-change');
-		setPendingStatus(partner.status === 'active' ? 'inactive' : 'active');
 		localState.isConfirmationModalOpen = true;
 	}
 
@@ -234,12 +224,7 @@ const PartnersPage: FC = observer(() => {
 
 	function handleConfirmationConfirm() {
 		if (!localState.confirmationPartner) return;
-
-		if (confirmationType === 'delete') {
-			partnersStore.deletePartner(localState.confirmationPartner._id);
-		} else {
-			partnersStore.updatePartner({ ...localState.confirmationPartner, status: pendingStatus });
-		}
+		partnersStore.deletePartner(localState.confirmationPartner._id);
 	}
 
 	function handleConfirmationCancel() {
@@ -310,7 +295,6 @@ const PartnersPage: FC = observer(() => {
 							onAddPartner={handleAddPartner}
 							onEditPartner={handleEditPartner}
 							onDeletePartner={handleDeletePartner}
-							onChangeStatus={handleChangeStatus}
 						/>
 					</Box>
 
@@ -326,10 +310,9 @@ const PartnersPage: FC = observer(() => {
 					{/* Confirmation Modal */}
 					<ConfirmationModal
 						isOpen={localState.isConfirmationModalOpen}
-						type={confirmationType}
+						type="delete"
 						partner={localState.confirmationPartner}
-						newStatus={pendingStatus}
-						isLoading={partnersStore.isDeletingPartner || partnersStore.isUpdatingPartner}
+						isLoading={partnersStore.isDeletingPartner}
 						onConfirm={handleConfirmationConfirm}
 						onCancel={handleConfirmationCancel}
 					/>

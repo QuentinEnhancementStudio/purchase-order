@@ -5,4 +5,4 @@ export { PartnerFormModal } from './PartnerFormModal';
 export type { PartnerFormModalProps } from './PartnerFormModal';
 
 export { ConfirmationModal } from './ConfirmationModal';
-export type { ConfirmationModalProps, ConfirmationType } from './ConfirmationModal';
+export type { ConfirmationModalProps } from './ConfirmationModal';

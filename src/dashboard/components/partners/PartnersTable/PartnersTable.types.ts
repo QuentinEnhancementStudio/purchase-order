@@ -20,7 +20,6 @@ export interface PartnersTableProps {
   onAddPartner: () => void;
   onEditPartner: (partner: Partner) => void;
   onDeletePartner: (partner: Partner) => void;
-  onChangeStatus: (partner: Partner) => void;
 }
 
 export interface SearchAndFilterState {

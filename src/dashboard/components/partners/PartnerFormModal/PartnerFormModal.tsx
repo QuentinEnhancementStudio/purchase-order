@@ -136,6 +136,9 @@ export const PartnerFormModal: React.FC<PartnerFormModalProps> = observer(({
 	}));
 	const title = isEditing ? `Edit Partner: ${partner?.companyName}` : 'Add New Partner';
 
+	// Check if status has changed from original value
+	const hasStatusChanged = isEditing && partner && formData.status !== partner.status;
+
 	// Form is valid if validation passes or hasn't been submitted yet
 	const canSubmit = !validation || validation.success || !hasSubmitted;
 
@@ -242,6 +245,12 @@ export const PartnerFormModal: React.FC<PartnerFormModalProps> = observer(({
 						</Box>
 					</Box>
 				}
+				footnote={hasStatusChanged ? (
+					<Text size="small">
+						Changing partner status will immediately affect their access to wholesale features and pricing.
+					</Text>
+				) : undefined}
+				footnoteSkin={hasStatusChanged ? "light" : undefined}
 			/>
 		</Modal>
 	);
