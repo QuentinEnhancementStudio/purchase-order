@@ -29,6 +29,7 @@ export const PartnersTable: React.FC<PartnersTableProps> = observer(({
   sortDirection,
   currentPage,
   totalPages,
+  getMemberDisplayName,
   onSearchChange,
   onStatusFilterChange,
   onSortChange,
@@ -80,16 +81,16 @@ export const PartnersTable: React.FC<PartnersTableProps> = observer(({
           {partner.companyName}
         </Text>
       ),
-      width: '25%'
+      width: '30%'
     },
     {
-      title: <Text size="small" weight="bold">Member ID</Text>,
+      title: <Text size="small" weight="bold">Member</Text>,
       render: (partner: Partner) => (
         <Text size="medium" secondary>
-          {partner.memberId || 'No member ID'}
+          {partner.memberId ? getMemberDisplayName(partner.memberId) : 'No member assigned'}
         </Text>
       ),
-      width: '25%'
+      width: '30%'
     },
     {
       title: (
@@ -122,7 +123,7 @@ export const PartnersTable: React.FC<PartnersTableProps> = observer(({
       width: '15%'
     },
     {
-      title: <Text size="small" weight="bold">Actions</Text>,
+      //title: <Text size="small" weight="bold">Actions</Text>,
       render: (partner: Partner) => (
         <TableActionCell
           size="medium"
@@ -140,7 +141,7 @@ export const PartnersTable: React.FC<PartnersTableProps> = observer(({
           moreActionsTooltipText="More actions"
         />
       ),
-      width: '20%'
+      width: '10%'
     }
   ];
 

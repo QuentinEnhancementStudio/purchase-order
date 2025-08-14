@@ -2,11 +2,12 @@ import { webMethod, Permissions } from '@wix/web-methods';
 import { z } from 'zod';
 import { validateStatusTransition } from '../entities/partner';
 import { PartnersRepository } from '../repositories/partners';
-import { getAllMembers, MemberOption } from '../services/members';
 import { ValidationService } from '../services/validation';
 import { Partner, PartnerStatusSchema, PartnerSchema } from '../entities/partner/schemas';
 import { CompanyNameStrictSchema, MemberIdSchema, GlobalDiscountPercentageSchema, PartnerBase, PartnerBaseSchema } from '../entities/partner/schemas';
 import { PaginationSchema, PartnerSortingSchema } from '../services/validation';
+import { AppError } from '../../dashboard/services/AppError/AppError';
+import { ErrorCategory, ErrorSeverity } from '../../dashboard/services/AppError/ErrorCategories';
 
 const partnersRepository = new PartnersRepository();
 
@@ -72,8 +73,19 @@ export const queryPartners = webMethod(
       // Return all partners if no filters
       return await partnersRepository.getAllPartners();
     } catch (error) {
-      console.error('Error fetching partners:', error);
-      throw error instanceof Error ? error : new Error('Failed to fetch partners');
+      const appError = new AppError({
+        category: ErrorCategory.SERVER,
+        technicalMessage: `Failed to query partners: ${error instanceof Error ? error.message : String(error)}`,
+        userMessage: 'Unable to load partners list',
+        source: 'queryPartners',
+        layer: 'webMethod',
+        severity: ErrorSeverity.MEDIUM,
+        context: { filters}
+      });
+      
+      appError.log();
+      
+      throw appError;
     }
   }
 );
@@ -97,8 +109,19 @@ export const getPartnerById = webMethod(
       
       return partner;
     } catch (error) {
-      console.error('Error fetching partner:', error);
-      throw error instanceof Error ? error : new Error('Failed to fetch partner');
+      const appError = new AppError({
+        category: ErrorCategory.SERVER,
+        technicalMessage: `Failed to get partner by ID: ${error instanceof Error ? error.message : String(error)}`,
+        userMessage: 'Unable to load partner details',
+        source: 'getPartnerById',
+        layer: 'webMethod',
+        severity: ErrorSeverity.MEDIUM,
+        context: { partnerId }
+      });
+      
+      appError.log();
+      
+      throw appError;
     }
   }
 );
@@ -138,8 +161,19 @@ export const createPartner = webMethod(
       console.log(`Partner created successfully: ${partner.companyName} (${partner._id})`);
       return partner;
     } catch (error) {
-      console.error('Error creating partner:', error);
-      throw error instanceof Error ? error : new Error('Failed to create partner');
+      const appError = new AppError({
+        category: ErrorCategory.SERVER,
+        technicalMessage: `Failed to create partner: ${error instanceof Error ? error.message : String(error)}`,
+        userMessage: 'Unable to create partner',
+        source: 'createPartner',
+        layer: 'webMethod',
+        severity: ErrorSeverity.HIGH,
+        context: { partnerData}
+      });
+      
+      appError.log();
+      
+      throw appError;
     }
   }
 );
@@ -187,8 +221,19 @@ export const updatePartner = webMethod(
       console.log(`Partner updated successfully: ${updatedPartner.companyName} (${updatedPartner._id})`);
       return updatedPartner;
     } catch (error) {
-      console.error('Error updating partner:', error);
-      throw error instanceof Error ? error : new Error('Failed to update partner');
+      const appError = new AppError({
+        category: ErrorCategory.SERVER,
+        technicalMessage: `Failed to update partner: ${error instanceof Error ? error.message : String(error)}`,
+        userMessage: 'Unable to update partner',
+        source: 'updatePartner',
+        layer: 'webMethod',
+        severity: ErrorSeverity.HIGH,
+        context: { partner }
+      });
+      
+      appError.log();
+      
+      throw appError;
     }
   }
 );
@@ -221,8 +266,19 @@ export const deletePartner = webMethod(
       
       return deletedPartner;
     } catch (error) {
-      console.error('Error deleting partner:', error);
-      throw error instanceof Error ? error : new Error('Failed to delete partner');
+      const appError = new AppError({
+        category: ErrorCategory.SERVER,
+        technicalMessage: `Failed to delete partner: ${error instanceof Error ? error.message : String(error)}`,
+        userMessage: 'Unable to delete partner',
+        source: 'deletePartner',
+        layer: 'webMethod',
+        severity: ErrorSeverity.HIGH,
+        context: { partnerId }
+      });
+      
+      appError.log();
+      
+      throw appError;
     }
   }
 );
@@ -281,8 +337,19 @@ export const searchPartners = webMethod(
         hasPreviousPage: validatedCriteria.pagination.number > 1
       };
     } catch (error) {
-      console.error('Error searching partners:', error);
-      throw error instanceof Error ? error : new Error('Failed to search partners');
+      const appError = new AppError({
+        category: ErrorCategory.SERVER,
+        technicalMessage: `Failed to search partners: ${error instanceof Error ? error.message : String(error)}`,
+        userMessage: 'Unable to search partners',
+        source: 'searchPartners',
+        layer: 'webMethod',
+        severity: ErrorSeverity.MEDIUM,
+        context: { searchCriteria }
+      });
+      
+      appError.log();
+      
+      throw appError;
     }
   }
 );
@@ -321,23 +388,19 @@ export const getPartnerStats = webMethod(
         averageDiscount: Math.round(averageDiscount * 100) / 100 // Round to 2 decimal places
       };
     } catch (error) {
-      console.error('Error getting partner stats:', error);
-      throw new Error('Failed to get partner statistics');
-    }
-  }
-);
-
-/**
- * Get Wix members for partner form dropdown with optional status filtering
- */
-export const getWixMembers = webMethod(
-  Permissions.Admin,
-  async (statusFilter?: string[]): Promise<MemberOption[]> => {
-    try {
-      return await getAllMembers(statusFilter);
-    } catch (error) {
-      console.error('Error fetching members:', error);
-      throw new Error('Failed to fetch members list');
+      const appError = new AppError({
+        category: ErrorCategory.SERVER,
+        technicalMessage: `Failed to get partner statistics: ${error instanceof Error ? error.message : String(error)}`,
+        userMessage: 'Unable to load partner statistics',
+        source: 'getPartnerStats',
+        layer: 'webMethod',
+        severity: ErrorSeverity.MEDIUM,
+        context: {}
+      });
+      
+      appError.log();
+      
+      throw appError;
     }
   }
 );

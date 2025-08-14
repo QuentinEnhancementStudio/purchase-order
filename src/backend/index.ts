@@ -2,7 +2,7 @@
 
 
 // Services
-export { getEmailFromMemberId } from './services/members';
+export { MembersService } from './services/members';
 
 
 // Repositories

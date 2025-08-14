@@ -9,11 +9,11 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   className
 }) => {
   const getStatusConfig = (status: string) => {
-    const configs: Record<string, { skin: string; text: string }> = {
+    const configs: Record<string, { skin: string; text: string, type?: string}> = {
       // Partner statuses
-      active: { skin: 'success', text: 'Active' },
-      inactive: { skin: 'neutralLight', text: 'Inactive' },
-      pending: { skin: 'warning', text: 'Pending' },
+      active: { skin: 'success', text: 'Active', type: 'outlined'},
+      inactive: { skin: 'neutral', text: 'Inactive',  type: 'outlined'},
+      pending: { skin: 'neutralLight', text: 'Pending',  type: 'outlined' },
       
       // Purchase order statuses
       draft: { skin: 'neutralLight', text: 'Draft' },
@@ -33,7 +33,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
     <Badge
       skin={config.skin}
       size={size}
-      type={variant}
+      type={config.type}
       className={className}
     >
       {config.text}

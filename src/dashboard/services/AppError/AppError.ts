@@ -504,36 +504,36 @@ export class AppError extends Error {
     if (grouping) {
       console.groupCollapsed(title);
     } else {
-      console[logLevel](title);
+      console.error(title);
     }
 
     // Basic error info
-    console[logLevel]('ID:', this.id);
-    console[logLevel]('Category:', this.category);
-    if (this.code) console[logLevel]('Code:', this.code);
-    console[logLevel]('Severity:', this.severity);
-    if (this.layer) console[logLevel]('Layer:', this.layer);
-    console[logLevel]('Message:', this.technicalMessage);
-    if (this.userMessage) console[logLevel]('User Message:', this.userMessage);
-    if (this.source) console[logLevel]('Source:', this.source);
-    console[logLevel]('Timestamp:', this.timestamp.toISOString());
-
-    // Context (with optional filtering)
-    if (includeContext && this.context) {
-      console[logLevel]('Context:', this.context);
-    }
+    const basicErrorInfo = {
+      id: this.id,
+      category: this.category,
+      ...(this.code && { code: this.code }),
+      severity: this.severity,
+      ...(this.layer && { layer: this.layer }),
+      message: this.technicalMessage,
+      ...(this.userMessage && { userMessage: this.userMessage }),
+      ...(this.source && { source: this.source }),
+      timestamp: this.timestamp.toISOString(),
+	  context: this.context || "",
+    };
+	
+	console.error('Basic Error Info:', basicErrorInfo);
 
     // Stack trace
     if (includeStack && this.stack) {
-      console[logLevel]('Stack:', this.stack);
+      console.error('Stack:', this.stack);
     }
 
     // Chain information
     if (this.cause instanceof AppError) {
-      console[logLevel]('Caused by AppError:', this.cause.id);
+      console.error('Caused by AppError:', this.cause.id);
       this.cause.log({ ...options, grouping: false });
     } else if (this.cause) {
-      console[logLevel]('Caused by:', this.cause.message);
+      console.error('Caused by:', this.cause.message);
     }
 
     if (grouping) {

@@ -12,13 +12,13 @@ import {
 	SortField,
 	SortDirection
 } from '../../components/partners';
-import { GlobalErrorHandler, SuccessMessage, ErrorMessage } from '../../components/common';
-import { Partner, PartnerStatus } from '../../types';
+import { GlobalErrorHandler, SuccessMessage } from '../../components/common';
+import { Partner } from '../../types';
 import { PartnerBase } from '../../../backend/entities/partner/schemas';
 import { AppError } from '../../services/AppError/AppError';
 
 const PartnersPage: FC = observer(() => {
-	const { partnersStore } = useStore();
+	const { partnersStore, membersStore } = useStore();
 
 	// React state for non-reactive values
 	const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -44,9 +44,10 @@ const PartnersPage: FC = observer(() => {
 		}
 	}));
 
-	// Load partners on mount and setup reactions
+	// Load partners and members on mount and setup reactions
 	useEffect(() => {
 		partnersStore.loadPartners();
+		membersStore.loadMembers();
 
 		// Create reaction disposers array
 		const disposers: IReactionDisposer[] = [];
@@ -55,6 +56,16 @@ const PartnersPage: FC = observer(() => {
 		disposers.push(
 			reaction(
 				() => partnersStore.error,
+				(reason) => {
+					if (!reason) return;
+					localState.localError = reason;
+				}
+			)
+		);
+		// Reaction for membersStore error
+		disposers.push(
+			reaction(
+				() => membersStore.error,
 				(reason) => {
 					if (!reason) return;
 					localState.localError = reason;
@@ -175,6 +186,11 @@ const PartnersPage: FC = observer(() => {
 		};
 	}, []);
 
+	function getMemberDisplayName(memberId: string): string {
+		const member = membersStore.getMemberById(memberId);
+		return member?.profile?.displayName || 'Unknown Member';
+	}
+
 	function handleAddPartner() {
 		localState.editingPartner = null;
 		localState.isFormModalOpen = true;
@@ -288,6 +304,7 @@ const PartnersPage: FC = observer(() => {
 							currentPage={1}
 							totalPages={1}
 							itemsPerPage={10}
+							getMemberDisplayName={getMemberDisplayName}
 							onSearchChange={handleSearchChange}
 							onStatusFilterChange={handleStatusFilterChange}
 							onSortChange={handleSortChange}
@@ -303,6 +320,8 @@ const PartnersPage: FC = observer(() => {
 						isOpen={localState.isFormModalOpen}
 						partner={localState.editingPartner}
 						isLoading={partnersStore.isCreatingPartner || partnersStore.isUpdatingPartner}
+						members={membersStore.membersAsArray}
+						isLoadingMembers={membersStore.isLoadingMembers}
 						onSave={handleFormSave}
 						onCancel={handleFormCancel}
 					/>

@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { observer } from 'mobx-react';
 import {
-  MessageBoxFunctionalLayout,
-  Button,
-  Box,
+  Notification,
+  MessageModalLayout,
   Modal,
   Text,
-  TextButton
+  TextButton,
+  Box
 } from '@wix/design-system';
 import * as Icons from '@wix/wix-ui-icons-common';
 
@@ -15,20 +15,25 @@ import { AppError } from '../../../services/AppError';
 interface GlobalErrorHandlerProps {
   error: AppError | null;
   onClose: () => void;
+  onRetry?: () => void;
+  retryLabel?: string;
+  theme?: 'error' | 'warning' | 'success' | 'standard' | 'premium';
+  show?: boolean;
 }
 
 interface ErrorDetailsModalProps {
   isOpen: boolean;
   error: AppError;
   onClose: () => void;
+  onDismiss: () => void;
 }
 
-const ErrorDetailsModal: React.FC<ErrorDetailsModalProps> = ({ isOpen, error, onClose }) => {
+const ErrorDetailsModal: React.FC<ErrorDetailsModalProps> = ({ isOpen, error, onClose, onDismiss }) => {
   const formatTimestamp = (date: Date) => {
     return date.toLocaleString();
   };
 
-  const copyToClipboard = () => {
+  const copyToClipboard = async () => {
     const errorInfo = `
 Error Details:
 - Error ID: ${error.id}
@@ -39,143 +44,205 @@ Error Details:
 - User Message: ${error.userMessage || 'N/A'}
     `.trim();
 
-    navigator.clipboard.writeText(errorInfo).catch(() => {
-      // Fallback for older browsers
+    try {
+      // Modern clipboard API
+      await navigator.clipboard.writeText(errorInfo);
+    } catch (err) {
+      // Fallback for older browsers or when clipboard API is not available
       const textArea = document.createElement('textarea');
       textArea.value = errorInfo;
+      textArea.style.position = 'fixed';
+      textArea.style.opacity = '0';
+      textArea.style.left = '-9999px';
       document.body.appendChild(textArea);
       textArea.select();
-      document.execCommand('copy');
+      textArea.setSelectionRange(0, 99999); // For mobile devices
+      try {
+        // Keep the deprecated method as fallback - it still works
+        const successful = document.execCommand('copy');
+        if (!successful) {
+          console.warn('Fallback copy method failed');
+        }
+      } catch (fallbackErr) {
+        console.warn('Copy to clipboard failed:', fallbackErr);
+      }
       document.body.removeChild(textArea);
-    });
+    }
   };
+
+  if (!isOpen) return null;
+
+  const errorDetailsContent = (
+    <Box direction="vertical" gap="12px">
+      <Box direction="horizontal" gap="8px" verticalAlign="middle">
+        <Text size="small" weight="bold" secondary>
+          Category:
+        </Text>
+        <Text size="medium">
+          {error.category.toUpperCase().replace('_', ' ')}
+        </Text>
+      </Box>
+      
+      {error.code && (
+        <Box direction="vertical" gap="4px">
+          <Text size="small" weight="bold" secondary>
+            Error Code
+          </Text>
+          <Text size="medium">
+            {error.code}
+          </Text>
+        </Box>
+      )}
+      
+      <Box direction="horizontal" gap="8px" verticalAlign="middle">
+        <Text size="small" weight="bold" secondary>
+          Timestamp:
+        </Text>
+        <Text size="medium">
+          {formatTimestamp(error.timestamp)}
+        </Text>
+      </Box>
+      
+      {error.technicalMessage && (
+        <Box direction="vertical" gap="8px">
+          <Text size="small" weight="bold" secondary>
+            Technical Details:
+          </Text>
+          <Box 
+            paddingTop="0px"
+            paddingBottom="12px" 
+            backgroundColor="D80" 
+            borderRadius="8px"
+            border="1px solid D60"
+          >
+            <Text size="small">
+              {error.technicalMessage}
+            </Text>
+          </Box>
+        </Box>
+      )}
+    </Box>
+  );
 
   return (
     <Modal
       isOpen={isOpen}
       onRequestClose={onClose}
+      shouldCloseOnOverlayClick={true}
       screen="desktop"
     >
-      <Box direction="vertical" gap="20px" padding="24px">
-        <Box direction="vertical" gap="8px">
-          <Text size="medium" weight="bold">Error Details</Text>
-          <Text size="small" secondary>
-            Technical information about the error that occurred
+      <MessageModalLayout
+        title={error.effectiveUserMessage}
+        primaryButtonText="Dismiss"
+        secondaryButtonText="Close"
+        onCloseButtonClick={onClose}
+        primaryButtonOnClick={onDismiss}
+        secondaryButtonOnClick={onClose}
+        footnote={
+          <Text size="small">
+            Error ID: <a 
+              onClick={async () => {
+                try {
+                  // Modern clipboard API
+                  await navigator.clipboard.writeText(error.id);
+                } catch (err) {
+                  // Fallback for older browsers or when clipboard API is not available
+                  const textArea = document.createElement('textarea');
+                  textArea.value = error.id;
+                  textArea.style.position = 'fixed';
+                  textArea.style.opacity = '0';
+                  textArea.style.left = '-9999px';
+                  document.body.appendChild(textArea);
+                  textArea.select();
+                  textArea.setSelectionRange(0, 99999); // For mobile devices
+                  try {
+                    // Keep the deprecated method as fallback - it still works
+                    const successful = document.execCommand('copy');
+                    if (!successful) {
+                      console.warn('Fallback copy method failed');
+                    }
+                  } catch (fallbackErr) {
+                    console.warn('Copy error ID to clipboard failed:', fallbackErr);
+                  }
+                  document.body.removeChild(textArea);
+                }
+              }}
+              style={{ cursor: 'pointer' }}
+            >
+              {error.id}
+            </a>
           </Text>
-        </Box>
-        
-        <Box direction="vertical" gap="16px">
-          <Box direction="vertical" gap="8px">
-            <Text size="small" weight="bold">Error ID</Text>
-            <Text size="small" weight="bold">{error.id}</Text>
-          </Box>
-          
-          <Box direction="vertical" gap="8px">
-            <Text size="small" weight="bold">Category</Text>
-            <Text size="small">{error.category.toUpperCase().replace('_', ' ')}</Text>
-          </Box>
-          
-          {error.code && (
-            <Box direction="vertical" gap="8px">
-              <Text size="small" weight="bold">Error Code</Text>
-              <Text size="small">{error.code}</Text>
-            </Box>
-          )}
-          
-          <Box direction="vertical" gap="8px">
-            <Text size="small" weight="bold">Timestamp</Text>
-            <Text size="small">{formatTimestamp(error.timestamp)}</Text>
-          </Box>
-          
-          {error.technicalMessage && (
-            <Box direction="vertical" gap="8px">
-              <Text size="small" weight="bold">Technical Details</Text>
-              <Box 
-                padding="12px" 
-                backgroundColor="#F8F9FA" 
-                borderRadius="4px"
-                border="1px solid #E5E5E5"
-              >
-                <Text size="small" secondary>{error.technicalMessage}</Text>
-              </Box>
-            </Box>
-          )}
-        </Box>
-        
-        <Box direction="horizontal" align="space-between" paddingTop="16px" borderTop="1px solid #E5E5E5">
+        }
+        sideActions={
           <TextButton
-            size="small"
+            size="tiny"
             prefixIcon={<Icons.DuplicateSmall />}
             onClick={copyToClipboard}
           >
             Copy Details
           </TextButton>
-          <Button onClick={onClose}>Close</Button>
-        </Box>
-      </Box>
+        }
+      >
+        {errorDetailsContent}
+      </MessageModalLayout>
     </Modal>
   );
 };
 
 export const GlobalErrorHandler: React.FC<GlobalErrorHandlerProps> = observer(({ 
   error, 
-  onClose 
+  onClose,
+  onRetry,
+  retryLabel = 'Retry',
+  theme = 'error',
+  show = true
 }) => {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
-  if (!error) return null;
-
-  const handlePrimaryAction = () => {
-    onClose();
-  };
+  if (!error || !show) return null;
 
   const handleSecondaryAction = () => {
     setIsDetailsModalOpen(true);
   };
 
+  const handleDismiss = () => {
+    setIsDetailsModalOpen(false);
+    onClose();
+  };
+
+  const handleModalClose = () => {
+    setIsDetailsModalOpen(false);
+  };
+
   return (
     <>
-      <Box position="fixed" top="0" left="0" right="0" zIndex={1000}>
-        <MessageBoxFunctionalLayout
-          theme="red"
-          onClose={onClose}
-        >
-          <Box direction="vertical" gap="12px">
-            <Box direction="horizontal" align="space-between" verticalAlign="middle">
-              <Box direction="vertical" gap="4px">
-                <Text size="medium" weight="bold">Something went wrong</Text>
-                <Text size="small" secondary>Error ID: {error.id}</Text>
-              </Box>
-            </Box>
-            
-            <Text size="medium">{error.effectiveUserMessage}</Text>
-            
-            <Box direction="horizontal" gap="12px" paddingTop="8px">
-              <Button
-                size="small"
-                skin="destructive"
-                onClick={handlePrimaryAction}
-              >
-                Dismiss
-              </Button>
-              <TextButton
-                size="small"
-                onClick={handleSecondaryAction}
-              >
-                View Details
-              </TextButton>
-            </Box>
-          </Box>
-        </MessageBoxFunctionalLayout>
-      </Box>
+      <Notification 
+        theme={theme}
+        show={show}
+      >
+        <Notification.TextLabel>
+          {error.effectiveUserMessage}
+        </Notification.TextLabel>
+        
+        {onRetry ? (
+          <Notification.ActionButton onClick={onRetry}>
+            {retryLabel}
+          </Notification.ActionButton>
+        ) : (
+          <Notification.ActionButton type="textLink" onClick={handleSecondaryAction}>
+            View Details
+          </Notification.ActionButton>
+        )}
+        
+        <Notification.CloseButton onClick={onClose} />
+      </Notification>
       
-      {isDetailsModalOpen && (
-        <ErrorDetailsModal
-          isOpen={isDetailsModalOpen}
-          error={error}
-          onClose={() => setIsDetailsModalOpen(false)}
-        />
-      )}
+      <ErrorDetailsModal
+        isOpen={isDetailsModalOpen}
+        error={error}
+        onClose={handleModalClose}
+        onDismiss={handleDismiss}
+      />
     </>
   );
 });

@@ -14,8 +14,6 @@ import { PartnerFormModalProps } from './PartnerFormModal.types';
 import { ValidationService, ValidationResult} from '../../../../backend/services/validation/validation';
 import { PartnerBase, PartnerBaseSchema, PartnerForm, PartnerFormSchema } from '../../../../backend/entities/partner/schemas';
 import { PartnerStatus } from '../../../types';
-import { getWixMembers } from '../../../../backend/web-methods/partners.web';
-import { MemberOption } from '../../../../backend/services/members';
 import { getStatusDisplayName } from '../../../../backend/entities/partner';
 import {
 	PartnerStatusSchema,
@@ -28,6 +26,8 @@ export const PartnerFormModal: React.FC<PartnerFormModalProps> = observer(({
 	isOpen,
 	partner,
 	isLoading,
+	members,
+	isLoadingMembers,
 	onSave,
 	onCancel
 }) => {
@@ -47,8 +47,6 @@ export const PartnerFormModal: React.FC<PartnerFormModalProps> = observer(({
 	});
 	const [validation, setValidation] = useState<ValidationResult<PartnerBase> | null>(null);
 	const [hasSubmitted, setHasSubmitted] = useState(false);
-	const [members, setMembers] = useState<MemberOption[]>([]);
-	const [loadingMembers, setLoadingMembers] = useState(false);
 
 	useEffect(() => {
 		if (isOpen) {
@@ -67,22 +65,9 @@ export const PartnerFormModal: React.FC<PartnerFormModalProps> = observer(({
 			
 			setValidation(null);
 			setHasSubmitted(false);
-			loadMembers();
 		}
 	}, [isOpen, partner]);
 
-	async function loadMembers() {
-		setLoadingMembers(true);
-		try {
-			const membersList = await getWixMembers();
-			setMembers(membersList);
-		} catch (error) {
-			console.error('Error loading members:', error);
-			setMembers([]);
-		} finally {
-			setLoadingMembers(false);
-		}
-	}
 
 	function handleInputChange<K extends keyof PartnerForm>(field: K, value: PartnerForm[K]) {
 		setFormData(prev => ({ ...prev, [field]: value }));
@@ -131,8 +116,8 @@ export const PartnerFormModal: React.FC<PartnerFormModalProps> = observer(({
 	}));
 
 	const memberOptions = members.map(member => ({
-		id: member.id,
-		value: `${member.displayName} (${member.email})`
+		id: member._id,
+		value: `${member.profile?.displayName } (${member.loginEmail})`
 	}));
 	const title = isEditing ? `Edit Partner: ${partner?.companyName}` : 'Add New Partner';
 
@@ -192,13 +177,13 @@ export const PartnerFormModal: React.FC<PartnerFormModalProps> = observer(({
 								labelPlacement="top"
 							>
 								<Dropdown
-									placeholder={loadingMembers ? "Loading members..." : "Select a member"}
+									placeholder={isLoadingMembers ? "Loading members..." : "Select a member"}
 									options={memberOptions}
 									selectedId={formData.memberId}
 									onSelect={(option) => handleInputChange('memberId', option?.id as string || '')}
 									status={validation?.fieldErrors?.memberId ? 'error' : undefined}
 									statusMessage={validation?.fieldErrors?.memberId}
-									disabled={isLoading || loadingMembers}
+									disabled={isLoading || isLoadingMembers}
 								/>
 							</FormField>
 

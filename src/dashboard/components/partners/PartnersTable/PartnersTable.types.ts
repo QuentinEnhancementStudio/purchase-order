@@ -13,6 +13,7 @@ export interface PartnersTableProps {
   currentPage: number;
   totalPages: number;
   itemsPerPage: number;
+  getMemberDisplayName: (memberId: string) => string;
   onSearchChange: (query: string) => void;
   onStatusFilterChange: (status: string) => void;
   onSortChange: (field: SortField, direction: SortDirection) => void;
