@@ -5,6 +5,8 @@ import { Page, WixDesignSystemProvider, Box, MessageBoxFunctionalLayout } from '
 import '@wix/design-system/styles.global.css';
 
 import { useStore } from '../../stores/StoreContext';
+import { PartnerFilter, PartnerSorting } from '../../stores/partnersStore';
+import { Pagination } from '../../services/Pagination';
 import {
 	PartnersTable,
 	PartnerFormModal,
@@ -32,15 +34,45 @@ const PartnersPage: FC = observer(() => {
 		confirmationPartner: null as Partner | null,
 		localError: null as AppError | null,
 
-		// Filter state - reactive for filtering
-		statusFilter: '',
+		// Grouped filter state
+		filters: {
+			keyword: '',
+			status: ''
+		} as PartnerFilter,
 
-		// Computed filtered partners - reactive to statusFilter changes
-		get filteredPartners(): Partner[] {
-			const filter = this.statusFilter;
-			return filter === ''
-				? partnersStore.partnersAsArray
-				: partnersStore.getFilteredPartners({ status: filter });
+		// Grouped sorting state
+		sorting: {
+			field: 'companyName',
+			direction: 'asc'
+		} as PartnerSorting,
+
+		// Grouped pagination state
+		pagination: {
+			currentPage: 1,
+			pageSize: 25
+		},
+
+		// Computed filtered and sorted partners
+		get filteredSortedPartners(): Partner[] {
+			return partnersStore.getFilteredSortedPartners(this.filters, this.sorting);
+		},
+
+		// Computed paginated partners (using Pagination service)
+		get paginatedPartners(): Partner[] {
+			return Pagination.getPageItems(
+				this.filteredSortedPartners,
+				this.pagination.currentPage,
+				this.pagination.pageSize
+			);
+		},
+
+		// Computed pagination metadata (using Pagination service)
+		get paginationMetadata() {
+			return Pagination.getPaginationMetadata(
+				this.filteredSortedPartners.length,
+				this.pagination.currentPage,
+				this.pagination.pageSize
+			);
 		}
 	}));
 
@@ -188,7 +220,7 @@ const PartnersPage: FC = observer(() => {
 
 	function getMemberDisplayName(memberId: string): string {
 		const member = membersStore.getMemberById(memberId);
-		return member?.profile?.displayName || 'Unknown Member';
+		return member?.contact?.displayName || 'Unknown Member';
 	}
 
 	function handleAddPartner() {
@@ -249,24 +281,28 @@ const PartnersPage: FC = observer(() => {
 	}
 
 	function handleSearchChange(query: string) {
-		// TODO: Implement search functionality
-		console.log('Search query:', query);
+		localState.filters.keyword = query;
+		localState.pagination.currentPage = 1; // Reset to first page on search
 	}
 
 	function handleStatusFilterChange(status: string) {
-		localState.statusFilter = status;
+		localState.filters.status = status;
+		localState.pagination.currentPage = 1; // Reset to first page on filter change
 	}
 
 	// Filtered partners are now computed in localState
 
 	function handleSortChange(field: SortField, direction: SortDirection) {
-		// TODO: Implement sorting
-		console.log('Sort:', field, direction);
+		localState.sorting.field = field as PartnerSorting['field'];
+		localState.sorting.direction = direction;
+		localState.pagination.currentPage = 1; // Reset to first page on sort change
 	}
 
 	function handlePageChange(page: number) {
-		// TODO: Implement pagination
-		console.log('Page change:', page);
+		// Validate page number against pagination metadata
+		if (page >= 1 && page <= localState.paginationMetadata.totalPages) {
+			localState.pagination.currentPage = page;
+		}
 	}
 
 	return (
@@ -295,15 +331,15 @@ const PartnersPage: FC = observer(() => {
 
 						{/* Partners Table */}
 						<PartnersTable
-							partners={localState.filteredPartners}
+							partners={localState.paginatedPartners}
 							isLoading={partnersStore.isLoadingPartners}
-							searchQuery=""
-							statusFilter={localState.statusFilter}
-							sortField="companyName"
-							sortDirection="asc"
-							currentPage={1}
-							totalPages={1}
-							itemsPerPage={10}
+							searchQuery={localState.filters.keyword || ''}
+							statusFilter={localState.filters.status || ''}
+							sortField={localState.sorting.field as SortField}
+							sortDirection={localState.sorting.direction}
+							currentPage={localState.paginationMetadata.currentPage}
+							totalPages={localState.paginationMetadata.totalPages}
+							itemsPerPage={localState.paginationMetadata.pageSize}
 							getMemberDisplayName={getMemberDisplayName}
 							onSearchChange={handleSearchChange}
 							onStatusFilterChange={handleStatusFilterChange}

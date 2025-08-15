@@ -93,7 +93,7 @@ export class MembersService {
 	 */
 	static async getAllMembers(filter: MemberFilter = { status: ['APPROVED'] }): Promise<Member[]> {
 		try {
-			const query = MembersService.elevatedQueryMembers({fieldsets: ['EXTENDED']});
+			const query = MembersService.elevatedQueryMembers({fieldsets: ['FULL']});
 
 			const response = await query.find();
 

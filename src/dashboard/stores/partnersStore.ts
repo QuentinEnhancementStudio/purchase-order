@@ -1,6 +1,7 @@
 import { makeAutoObservable, runInAction, reaction, IReactionDisposer } from 'mobx';
 import { fromPromise, IPromiseBasedObservable } from 'mobx-utils';
-import { Partner } from '../types';
+import { orderBy } from 'lodash';
+import { Partner, PartnerBase } from '../types';
 import {
   queryPartners,
   createPartner,
@@ -11,9 +12,14 @@ import {
 import { AppError } from '../services/AppError/AppError';
 import { ErrorCategory } from '../services/AppError/ErrorCategories';
 
-interface PartnerFilter {
+export interface PartnerFilter {
   status?: string | null;
-  companyName?: string | null;
+  keyword?: string | null;
+}
+
+export interface PartnerSorting {
+  field: 'companyName' | 'status' | 'globalDiscountPercentage' | '_createdDate' | '_updatedDate';
+  direction: 'asc' | 'desc';
 }
 
 export class PartnersStore {
@@ -260,7 +266,7 @@ export class PartnersStore {
     this.loadPartnersRequest = fromPromise(promise);
   }
 
-  createPartner(partnerData: Omit<Partner, '_id' | '_createdDate' | '_updatedDate' | '_owner'>): void {
+  createPartner(partnerData: PartnerBase): void {
     const promise = createPartner(partnerData);
     this.createPartnerRequest = fromPromise(promise);
   }
@@ -282,22 +288,29 @@ export class PartnersStore {
 
   getFilteredPartners(filter: PartnerFilter = {}): Partner[] {
     return Array.from(this.partners.values()).filter(partner => {
-      if (filter.status && partner.status !== filter.status) {
+      if (filter.status && filter.status.trim() !== '' && partner.status !== filter.status) {
         return false;
       }
-      if (filter.companyName && !partner.companyName.toLowerCase().includes(filter.companyName.toLowerCase())) {
-        return false;
+      if (filter.keyword) {
+        const keyword = filter.keyword.toLowerCase();
+        return (
+          partner._id.toLowerCase().includes(keyword) ||
+          partner.companyName.toLowerCase().includes(keyword) ||
+          partner.memberId.toLowerCase().includes(keyword)
+        );
       }
       return true;
     });
   }
 
-  getActivePartners(): Partner[] {
-    return this.getFilteredPartners({ status: 'active' });
+  getFilteredSortedPartners(filter: PartnerFilter = {}, sorting: PartnerSorting): Partner[] {
+    const filteredPartners = this.getFilteredPartners(filter);
+    
+    return orderBy(filteredPartners, [sorting.field], [sorting.direction]);
   }
 
-  searchPartnersByCompany(companyName: string): Partner[] {
-    return this.getFilteredPartners({ companyName });
+  getActivePartners(): Partner[] {
+    return this.getFilteredPartners({ status: 'active' });
   }
 
   getPartnersCount(): number {

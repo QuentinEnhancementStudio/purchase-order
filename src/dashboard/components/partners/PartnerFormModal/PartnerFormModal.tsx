@@ -8,7 +8,11 @@ import {
 	Input,
 	FormField,
 	Dropdown,
+	DropdownBase,
+	TextButton,
+	listItemSelectBuilder,
 } from '@wix/design-system';
+import { ChevronDown as ChevronDownIcon } from '@wix/wix-ui-icons-common';
 
 import { PartnerFormModalProps } from './PartnerFormModal.types';
 import { ValidationService, ValidationResult} from '../../../../backend/services/validation/validation';
@@ -110,15 +114,20 @@ export const PartnerFormModal: React.FC<PartnerFormModalProps> = observer(({
 		? PartnerStatusSchema.options
 		: ['active', 'inactive'] as const;
 
-	const statusOptions = availableStatuses.map(status => ({
+	// Simple options for basic Dropdown functionality
+	const statusOptionsSimple = availableStatuses.map(status => ({
 		id: status,
 		value: getStatusDisplayName(status)
 	}));
 
-	const memberOptions = members.map(member => ({
-		id: member._id,
-		value: `${member.profile?.displayName } (${member.loginEmail})`
-	}));
+	const memberOptions = members.map(member => 
+		listItemSelectBuilder({
+			id: member._id,
+			title: member.contact?.displayName || 'Unknown',
+			label: member.contact?.displayName || 'Unknown',
+			subtitle: member.contact?.displayName !== member.loginEmail ? member.loginEmail : undefined,
+		})
+	);
 	const title = isEditing ? `Edit Partner: ${partner?.companyName}` : 'Add New Partner';
 
 	// Check if status has changed from original value
@@ -175,16 +184,29 @@ export const PartnerFormModal: React.FC<PartnerFormModalProps> = observer(({
 								required
 								infoContent="Select the Wix member associated with this partner"
 								labelPlacement="top"
+								status={validation?.fieldErrors?.memberId ? 'error' : undefined}
+								statusMessage={validation?.fieldErrors?.memberId}
 							>
-								<Dropdown
-									placeholder={isLoadingMembers ? "Loading members..." : "Select a member"}
+								<DropdownBase
 									options={memberOptions}
 									selectedId={formData.memberId}
 									onSelect={(option) => handleInputChange('memberId', option?.id as string || '')}
-									status={validation?.fieldErrors?.memberId ? 'error' : undefined}
-									statusMessage={validation?.fieldErrors?.memberId}
-									disabled={isLoading || isLoadingMembers}
-								/>
+									appendTo="window"
+									dynamicWidth={true}
+									zIndex={9000}
+									fluid
+								>
+									{({ toggle, selectedOption = {}}) => (
+										<TextButton
+											onClick={toggle}
+											suffixIcon={<ChevronDownIcon />}
+											disabled={isLoading || isLoadingMembers}
+											fluid
+										>
+											{selectedOption.label || formData?.memberId || (isLoadingMembers ? "Loading members..." : "Select a member")}
+										</TextButton>
+									)}
+								</DropdownBase>
 							</FormField>
 
 							<Box direction="horizontal" gap="16px">
@@ -217,12 +239,16 @@ export const PartnerFormModal: React.FC<PartnerFormModalProps> = observer(({
 									>
 										<Dropdown
 											placeholder="Select status"
-											options={statusOptions}
+											options={statusOptionsSimple}
 											selectedId={formData.status}
-											onSelect={(option) => handleInputChange('status', option?.id as PartnerStatus || 'pending')}
+											onSelect={(option) => handleInputChange('status', option?.id as PartnerStatus || 'active')}
 											status={validation?.fieldErrors?.status ? 'error' : undefined}
 											statusMessage={validation?.fieldErrors?.status}
 											disabled={isLoading}
+											popoverProps={{
+												appendTo: 'scrollParent',
+												dynamicWidth: false,
+											}}
 										/>
 									</FormField>
 								</Box>

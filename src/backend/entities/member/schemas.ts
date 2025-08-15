@@ -31,7 +31,7 @@ export const MemberIdSchema = z.string().min(1, 'Member ID is required');
 export const MemberBaseSchema = z.object({
   _id: MemberIdSchema,
   loginEmail: EmailSchema,
-  profile: z.object({
+  contact: z.object({
     firstName: FirstNameSchema.optional(),
     lastName: LastNameSchema.optional(),
   }).optional(),
@@ -40,10 +40,10 @@ export const MemberBaseSchema = z.object({
   _updatedDate: z.coerce.date(),
 }).transform((data) => ({
   ...data,
-  profile: {
-    ...data.profile,
-    displayName: data.profile?.firstName || data.profile?.lastName 
-      ? `${data.profile.firstName} ${data.profile.lastName}`.trim()
+  contact: {
+    ...data.contact,
+    displayName: data.contact?.firstName || data.contact?.lastName 
+      ? `${data.contact.firstName} ${data.contact.lastName}`.trim()
       : data.loginEmail ? data.loginEmail : data._id
   }
 }));

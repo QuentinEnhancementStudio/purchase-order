@@ -1,6 +1,6 @@
 import { Partner, PartnerStatus } from '../../../types';
 
-export type SortField = 'companyName' | 'status' | 'discount';
+export type SortField = 'companyName' | 'status' | 'globalDiscountPercentage';
 export type SortDirection = 'asc' | 'desc';
 
 export interface PartnersTableProps {

@@ -13,7 +13,6 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
       // Partner statuses
       active: { skin: 'success', text: 'Active', type: 'outlined'},
       inactive: { skin: 'neutral', text: 'Inactive',  type: 'outlined'},
-      pending: { skin: 'neutralLight', text: 'Pending',  type: 'outlined' },
       
       // Purchase order statuses
       draft: { skin: 'neutralLight', text: 'Draft' },

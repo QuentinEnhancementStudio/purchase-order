@@ -36,7 +36,6 @@ export function calculateDiscountedPrice(originalPrice: number, partner: Partner
 export function getStatusDisplayName(status: Partner['status']): string {
   const statusMap = {
     active: 'Active',
-    pending: 'Pending',
     inactive: 'Inactive'
   };
   return statusMap[status] || status;
@@ -47,7 +46,6 @@ export function getStatusDisplayName(status: Partner['status']): string {
  */
 export function getAvailableStatusTransitions(currentStatus: Partner['status']): Partner['status'][] {
   const allowedTransitions: Record<Partner['status'], Partner['status'][]> = {
-    pending: ['active', 'inactive'],
     active: ['inactive'],
     inactive: ['active']
   };

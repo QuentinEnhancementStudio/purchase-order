@@ -56,7 +56,7 @@ export const PartnersTable: React.FC<PartnersTableProps> = observer(({
     return `${globalDiscountPercentage}%`;
   };
 
-  const allPartnerStatuses: PartnerStatus[] = ['active', 'pending', 'inactive'];
+  const allPartnerStatuses: PartnerStatus[] = ['active', 'inactive'];
   
   const statusFilterOptions = [
     { id: '', value: 'All' },
@@ -94,10 +94,10 @@ export const PartnersTable: React.FC<PartnersTableProps> = observer(({
     },
     {
       title: (
-        <div onClick={() => handleSort('discount')} style={{ cursor: 'pointer' }}>
+        <div onClick={() => handleSort('globalDiscountPercentage')} style={{ cursor: 'pointer' }}>
           <Box align="space-between" verticalAlign="middle">
             <Text size="small" weight="bold">Discount %</Text>
-            {getSortIcon('discount')}
+            {getSortIcon('globalDiscountPercentage')}
           </Box>
         </div>
       ),
@@ -123,7 +123,7 @@ export const PartnersTable: React.FC<PartnersTableProps> = observer(({
       width: '15%'
     },
     {
-      //title: <Text size="small" weight="bold">Actions</Text>,
+      title: <Text size="small" weight="bold"></Text>,
       render: (partner: Partner) => (
         <TableActionCell
           size="medium"
@@ -166,7 +166,7 @@ prefix={<Input.IconAffix><Icons.Search /></Input.IconAffix>}
             placeholder="Filter by status"
             options={statusFilterOptions}
             selectedId={statusFilter}
-            onSelect={(option) => onStatusFilterChange(option?.id as string || 'all')}
+            onSelect={(option) => onStatusFilterChange(option?.id as string || '')}
           />
         </TableToolbar.Item>
         <TableToolbar.Item>

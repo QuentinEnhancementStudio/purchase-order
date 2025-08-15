@@ -11,7 +11,6 @@ import {
  */
 export function validateStatusTransition(currentStatus: Partner['status'], newStatus: Partner['status']): boolean {
   const allowedTransitions: Record<Partner['status'], Partner['status'][]> = {
-    pending: ['active', 'inactive'],
     active: ['inactive'],
     inactive: ['active']
   };

@@ -9,7 +9,7 @@ export const DISCOUNT_MIN_VALUE = 0;
 export const DISCOUNT_MAX_VALUE = 100;
 
 // Partner Status Schema
-export const PartnerStatusSchema = z.enum(['active', 'inactive', 'pending']);
+export const PartnerStatusSchema = z.enum(['active', 'inactive']);
 
 // Base Field Schemas
 export const CompanyNameSchema = z.string()

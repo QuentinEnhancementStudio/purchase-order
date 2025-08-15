@@ -14,7 +14,6 @@ const partnersRepository = new PartnersRepository();
 /**
  * TODO
  * - add custom logger
- * - add custom error handling with proper error codes so that frontend can handle them
  * - seek difference between queryPartners and searchPartners
  */
 
@@ -446,15 +445,13 @@ export const getPartnerStats = webMethod(
 	async (): Promise<{
 		totalPartners: number;
 		activePartners: number;
-		pendingPartners: number;
 		inactivePartners: number;
 		averageDiscount: number;
 	}> => {
 		try {
-			const [total, active, pending, inactive] = await Promise.all([
+			const [total, active, inactive] = await Promise.all([
 				partnersRepository.count(),
 				partnersRepository.countPartnersByStatus('active'),
-				partnersRepository.countPartnersByStatus('pending'),
 				partnersRepository.countPartnersByStatus('inactive')
 			]);
 
@@ -467,7 +464,6 @@ export const getPartnerStats = webMethod(
 			return {
 				totalPartners: total,
 				activePartners: active,
-				pendingPartners: pending,
 				inactivePartners: inactive,
 				averageDiscount: Math.round(averageDiscount * 100) / 100 // Round to 2 decimal places
 			};
