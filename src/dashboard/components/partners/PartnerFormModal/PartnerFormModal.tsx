@@ -8,11 +8,9 @@ import {
 	Input,
 	FormField,
 	Dropdown,
-	DropdownBase,
-	TextButton,
+	AutoComplete,
 	listItemSelectBuilder,
 } from '@wix/design-system';
-import { ChevronDown as ChevronDownIcon } from '@wix/wix-ui-icons-common';
 
 import { PartnerFormModalProps } from './PartnerFormModal.types';
 import { ValidationService, ValidationResult} from '../../../../backend/services/validation/validation';
@@ -51,6 +49,7 @@ export const PartnerFormModal: React.FC<PartnerFormModalProps> = observer(({
 	});
 	const [validation, setValidation] = useState<ValidationResult<PartnerBase> | null>(null);
 	const [hasSubmitted, setHasSubmitted] = useState(false);
+	const [memberSearchValue, setMemberSearchValue] = useState('');
 
 	useEffect(() => {
 		if (isOpen) {
@@ -63,14 +62,18 @@ export const PartnerFormModal: React.FC<PartnerFormModalProps> = observer(({
 					...defaults,
 					...partner,
 				});
+				// Set search value to selected member's name for editing
+				const selectedMember = members.find(m => m._id === partner.memberId);
+				setMemberSearchValue(selectedMember?.contact?.displayName || '');
 			} else {
 				setFormData(defaults);
+				setMemberSearchValue('');
 			}
 			
 			setValidation(null);
 			setHasSubmitted(false);
 		}
-	}, [isOpen, partner]);
+	}, [isOpen, partner, members]);
 
 
 	function handleInputChange<K extends keyof PartnerForm>(field: K, value: PartnerForm[K]) {
@@ -187,26 +190,43 @@ export const PartnerFormModal: React.FC<PartnerFormModalProps> = observer(({
 								status={validation?.fieldErrors?.memberId ? 'error' : undefined}
 								statusMessage={validation?.fieldErrors?.memberId}
 							>
-								<DropdownBase
+								<AutoComplete
+									
 									options={memberOptions}
 									selectedId={formData.memberId}
-									onSelect={(option) => handleInputChange('memberId', option?.id as string || '')}
-									appendTo="window"
-									dynamicWidth={true}
-									zIndex={9000}
-									fluid
-								>
-									{({ toggle, selectedOption = {}}) => (
-										<TextButton
-											onClick={toggle}
-											suffixIcon={<ChevronDownIcon />}
-											disabled={isLoading || isLoadingMembers}
-											fluid
-										>
-											{selectedOption.label || formData?.memberId || (isLoadingMembers ? "Loading members..." : "Select a member")}
-										</TextButton>
-									)}
-								</DropdownBase>
+									value={memberSearchValue}
+									onChange={(e) => setMemberSearchValue(e.target.value)}
+									onSelect={(option) => {
+										handleInputChange('memberId', option?.id as string || '');
+										setMemberSearchValue(option?.label as string || '');
+									}}
+									placeholder={isLoadingMembers ? "Loading members..." : "Select a member"}
+									disabled={isLoading || isLoadingMembers}
+									predicate={(option) => {
+										if (!memberSearchValue.trim()) return true;
+										
+										const searchTerm = memberSearchValue.toLowerCase();
+										
+										// Find the actual member using option.id
+										const member = members.find(m => m._id === option.id);
+										if (!member) return false;
+										
+										// Search in multiple member fields
+										const searchFields = [
+											member.contact?.firstName,
+											member.contact?.lastName,
+											member.loginEmail
+										];
+										
+										return searchFields.some(field => 
+											field && field.toLowerCase().includes(searchTerm)
+										);
+									}}
+									popoverProps={{
+										appendTo: 'window',
+										zIndex: 9000,
+									}}
+								/>
 							</FormField>
 
 							<Box direction="horizontal" gap="16px">
