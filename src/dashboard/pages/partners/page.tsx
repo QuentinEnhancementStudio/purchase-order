@@ -14,7 +14,7 @@ import {
 	SortField,
 	SortDirection
 } from '../../components/partners';
-import { GlobalErrorHandler, SuccessMessage } from '../../components/common';
+import { GlobalErrorHandler } from '../../components/common';
 import { Partner } from '../../types';
 import { PartnerBase } from '../../../backend/entities/partner/schemas';
 import { AppError } from '../../services/AppError/AppError';
@@ -23,7 +23,6 @@ const PartnersPage: FC = observer(() => {
 	const { partnersStore, membersStore } = useStore();
 
 	// React state for non-reactive values
-	const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
 	// MobX reactive state for values that benefit from reactivity
 	const localState = useLocalObservable(() => ({
@@ -121,62 +120,38 @@ const PartnersPage: FC = observer(() => {
 				}
 			)
 		);
-		// Reaction for createPartnerRequest
+		// Reaction for createPartnerRequest - simplified for optimistic flow
 		disposers.push(
 			reaction(
 				() => partnersStore.createPartnerRequest,
 				(request) => {
 					request.case({
 						fulfilled: newPartner => {
-							if (!newPartner) return;
-
-							runInAction(() => {
-								localState.isFormModalOpen = false;
-								localState.editingPartner = null;
-							});
-							setSuccessMessage(`Partner "${newPartner.companyName}" has been created successfully.`);
-
-							// Fade out success message after 3 seconds
-							setTimeout(() => setSuccessMessage(null), 3000);
+							// Modal closing and success messages are now handled optimistically
+							// Only handle any additional logic needed on successful creation
 						},
 						rejected: (reason) => {
-							runInAction(() => {
-								localState.isFormModalOpen = false;
-								localState.editingPartner = null;
-							});
+							// Error handling only - modal closing is handled optimistically
+							// Could add error notification here if needed
 						},
 					});
 				}
 			)
 		);
 
-		// Reaction for updatePartnerRequest
+		// Reaction for updatePartnerRequest - simplified for optimistic flow
 		disposers.push(
 			reaction(
 				() => partnersStore.updatePartnerRequest,
 				(request) => {
 					request.case({
 						fulfilled: updatedPartner => {
-							if (!updatedPartner) return;
-
-							runInAction(() => {
-								localState.isFormModalOpen = false;
-								localState.editingPartner = null;
-								localState.isConfirmationModalOpen = false;
-								localState.confirmationPartner = null;
-							});
-							setSuccessMessage(`Partner "${updatedPartner.companyName}" has been updated successfully.`);
-
-							// Fade out success message after 3 seconds
-							setTimeout(() => setSuccessMessage(null), 3000);
+							// Modal closing and success messages are now handled optimistically
+							// Only handle any additional logic needed on successful update
 						},
 						rejected: () => {
-							runInAction(() => {
-								localState.isFormModalOpen = false;
-								localState.editingPartner = null;
-								localState.isConfirmationModalOpen = false;
-								localState.confirmationPartner = null;
-							});
+							// Error handling only - modal closing is handled optimistically
+							// Could add error notification here if needed
 						},
 					});
 				}
@@ -196,10 +171,6 @@ const PartnersPage: FC = observer(() => {
 								localState.isConfirmationModalOpen = false;
 								localState.confirmationPartner = null;
 							});
-							setSuccessMessage(`Partner "${deletedPartner.companyName}" has been deleted successfully.`);
-
-							// Fade out success message after 3 seconds
-							setTimeout(() => setSuccessMessage(null), 3000);
 						},
 						rejected: () => {
 							runInAction(() => {
@@ -249,7 +220,7 @@ const PartnersPage: FC = observer(() => {
 				globalDiscountPercentage: data.globalDiscountPercentage
 			};
 
-			partnersStore.updatePartner(updatedPartner);
+			partnersStore.updatePartnerOptimistic(updatedPartner);
 		} else {
 			// Create new partner - only include fields that match Partner entity
 			const partnerData = {
@@ -259,10 +230,12 @@ const PartnersPage: FC = observer(() => {
 				globalDiscountPercentage: data.globalDiscountPercentage
 			};
 
-			console.log('Creating new partner with data:', partnerData);
-
-			partnersStore.createPartner(partnerData);
+			partnersStore.createPartnerOptimistic(partnerData);
 		}
+
+		// Close modal immediately (optimistic UI)
+		localState.isFormModalOpen = false;
+		localState.editingPartner = null;
 	}
 
 	function handleFormCancel() {
@@ -320,15 +293,6 @@ const PartnersPage: FC = observer(() => {
 				/>
 				<Page.Content>
 					<Box direction="vertical" gap="16px">
-						{/* Success Message */}
-						{successMessage && (
-							<SuccessMessage
-								message={successMessage}
-								onClose={() => setSuccessMessage(null)}
-								autoClose
-							/>
-						)}
-
 						{/* Partners Table */}
 						<PartnersTable
 							partners={localState.paginatedPartners}
@@ -355,7 +319,6 @@ const PartnersPage: FC = observer(() => {
 					<PartnerFormModal
 						isOpen={localState.isFormModalOpen}
 						partner={localState.editingPartner}
-						isLoading={partnersStore.isCreatingPartner || partnersStore.isUpdatingPartner}
 						members={membersStore.membersAsArray}
 						isLoadingMembers={membersStore.isLoadingMembers}
 						onSave={handleFormSave}

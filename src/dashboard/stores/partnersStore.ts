@@ -22,9 +22,28 @@ export interface PartnerSorting {
   direction: 'asc' | 'desc';
 }
 
+// Optimistic operation type with methods for resolving/rejecting
+// Methods have direct access to store via closures - no parameter passing needed
+type OptimisticOperation = {
+  operationId: string;
+  resolve: (response: Partner) => void;
+  reject: () => void;
+}
+
+/**
+ * PartnersStore - Manages partner data with optional optimistic updates
+ * 
+ * Two operation modes:
+ * 1. Regular operations: createPartner(), updatePartner(), deletePartner() - traditional flow with loading states
+ * 2. Optimistic operations: createPartnerOptimistic(), updatePartnerOptimistic(), deletePartnerOptimistic() - immediate UI updates with rollback on failure
+ */
 export class PartnersStore {
   partners = new Map<string, Partner>();
   error: AppError | null = null;
+  
+  // Transaction log for optimistic updates rollback support
+  // Key: operationId, Value: operation details
+  private optimisticOperations = new Map<string, OptimisticOperation>();
   
   // Observable promises for reactive request states - initialized as resolved with empty arrays/objects
   loadPartnersRequest: IPromiseBasedObservable<Partner[]> = fromPromise.resolve([]);
@@ -96,7 +115,7 @@ export class PartnersStore {
       )
     );
 
-    // Reaction for create partner requests
+    // Reaction for create partner requests with optimistic operation handling
     this.reactionDisposers.push(
       reaction(
         () => ({ state: this.createPartnerRequest.state, value: this.createPartnerRequest.value }),
@@ -107,20 +126,35 @@ export class PartnersStore {
               // Clear any previous errors when request starts
               this.error = null;
             },
-            fulfilled: (response: Partner) => {
+            fulfilled: (response: Partner & { operationId?: string }) => {
               if (response) {
                 runInAction(() => {
-                  this.partners.set(response._id, response);
+                  if (response.operationId && this.optimisticOperations.has(response.operationId)) {
+                    // Optimistic flow: delegate to self-managing operation
+                    const operation = this.optimisticOperations.get(response.operationId)!;
+                    operation.resolve(response);
+                  } else {
+                    // Non-optimistic flow: regular partner creation
+                    this.partners.set(response._id, response);
+                  }
                 });
               }
             },
             rejected: (error: any) => {
-              // Check if this is a serialized AppError from backend
+              runInAction(() => {
+                // Precise rollback: delegate to self-managing operation
+                if (error.operationId && this.optimisticOperations.has(error.operationId)) {
+                  const operation = this.optimisticOperations.get(error.operationId)!;
+                  operation.reject();
+                }
+                // If no operationId in error, no optimistic operation to rollback
+              });
+
+              // Handle error as before
               if (error && typeof error === 'object' && error.isAppError) {
                 try {
                   this.error = AppError.fromJSON(error);
                 } catch (reconstructionError) {
-                  // Fallback to wrapping if reconstruction fails
                   console.warn('Failed to reconstruct AppError from backend:', reconstructionError);
                   this.error = AppError.wrap(error, {
                     category: ErrorCategory.SERVER,
@@ -132,7 +166,6 @@ export class PartnersStore {
                   });
                 }
               } else {
-                // Wrap non-AppError instances as before
                 this.error = AppError.wrap(error, {
                   category: ErrorCategory.SERVER,
                   userMessage: 'Failed to create partner',
@@ -148,7 +181,7 @@ export class PartnersStore {
       )
     );
 
-    // Reaction for update partner requests
+    // Reaction for update partner requests with optimistic operation handling
     this.reactionDisposers.push(
       reaction(
         () => ({ state: this.updatePartnerRequest.state, value: this.updatePartnerRequest.value }),
@@ -159,20 +192,35 @@ export class PartnersStore {
               // Clear any previous errors when request starts
               this.error = null;
             },
-            fulfilled: (response: Partner) => {
+            fulfilled: (response: Partner & { operationId?: string }) => {
               if (response) {
                 runInAction(() => {
-                  this.partners.set(response._id, response);
+                  if (response.operationId && this.optimisticOperations.has(response.operationId)) {
+                    // Optimistic flow: delegate to self-managing operation
+                    const operation = this.optimisticOperations.get(response.operationId)!;
+                    operation.resolve(response);
+                  } else {
+                    // Non-optimistic flow: regular partner update
+                    this.partners.set(response._id, response);
+                  }
                 });
               }
             },
             rejected: (error: any) => {
-              // Check if this is a serialized AppError from backend
+              runInAction(() => {
+                // Precise rollback: delegate to self-managing operation
+                if (error.operationId && this.optimisticOperations.has(error.operationId)) {
+                  const operation = this.optimisticOperations.get(error.operationId)!;
+                  operation.reject();
+                }
+                // If no operationId in error, no optimistic operation to rollback
+              });
+
+              // Handle error as before
               if (error && typeof error === 'object' && error.isAppError) {
                 try {
                   this.error = AppError.fromJSON(error);
                 } catch (reconstructionError) {
-                  // Fallback to wrapping if reconstruction fails
                   console.warn('Failed to reconstruct AppError from backend:', reconstructionError);
                   this.error = AppError.wrap(error, {
                     category: ErrorCategory.SERVER,
@@ -184,7 +232,6 @@ export class PartnersStore {
                   });
                 }
               } else {
-                // Wrap non-AppError instances as before
                 this.error = AppError.wrap(error, {
                   category: ErrorCategory.SERVER,
                   userMessage: 'Failed to update partner',
@@ -211,14 +258,30 @@ export class PartnersStore {
               // Clear any previous errors when request starts
               this.error = null;
             },
-            fulfilled: (deletedPartner: Partner) => {
-              if (deletedPartner) {
+            fulfilled: (response: Partner & { operationId?: string }) => {
+              if (response) {
                 runInAction(() => {
-                  this.partners.delete(deletedPartner._id);
+                  if (response.operationId && this.optimisticOperations.has(response.operationId)) {
+                    // Optimistic flow: delegate to self-managing operation
+                    const operation = this.optimisticOperations.get(response.operationId)!;
+                    operation.resolve(response);
+                  } else {
+                    // Non-optimistic flow: regular partner deletion
+                    this.partners.delete(response._id);
+                  }
                 });
               }
             },
             rejected: (error: any) => {
+              runInAction(() => {
+                // Precise rollback: delegate to self-managing operation
+                if (error.operationId && this.optimisticOperations.has(error.operationId)) {
+                  const operation = this.optimisticOperations.get(error.operationId)!;
+                  operation.reject();
+                }
+                // If no operationId in error, no optimistic operation to rollback
+              });
+
               // Check if this is a serialized AppError from backend
               if (error && typeof error === 'object' && error.isAppError) {
                 try {
@@ -270,16 +333,98 @@ export class PartnersStore {
     const promise = createPartner(partnerData);
     this.createPartnerRequest = fromPromise(promise);
   }
-
+  
   updatePartner(partnerToUpdate: Partner): void {
     const promise = updatePartner(partnerToUpdate);
     this.updatePartnerRequest = fromPromise(promise);
   }
 
+  createPartnerOptimistic(partnerData: PartnerBase): void {
+    // Create temporary ID for optimistic partner
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    
+    const optimisticPartner: Partner = {
+      ...partnerData,
+      _id: tempId,
+      _createdDate: new Date(),
+      _updatedDate: new Date()
+    };
+    
+    // Create self-managing operation
+    const operation = this.createOptimisticOperation(
+      // Resolve: remove temp partner, add real partner
+      (response) => {
+        this.partners.delete(tempId);
+        this.partners.set(response._id, response);
+      },
+      // Reject: remove temp partner
+      () => {
+        this.partners.delete(tempId);
+      }
+    );
+    
+    // Perform the optimistic create
+    this.partners.set(tempId, optimisticPartner);
+    
+    // Make actual API call with operationId - reactions will handle success/failure
+    const promise = createPartner(partnerData, operation.operationId);
+    this.createPartnerRequest = fromPromise(promise);
+  }
+
+  updatePartnerOptimistic(partnerToUpdate: Partner): void {
+    const partnerId = partnerToUpdate._id;
+    const previousState = this.partners.get(partnerId);
+    
+    // Create self-managing operation
+    const operation = this.createOptimisticOperation(
+      // Resolve: update with server response
+      (response) => {
+        this.partners.set(response._id, response);
+      },
+      // Reject: restore previous state
+      () => {
+        this.partners.set(previousState!._id, previousState!);
+      }
+    );
+    
+    // Perform the optimistic update
+    const optimisticPartner = { ...partnerToUpdate };
+    this.partners.set(partnerId, optimisticPartner);
+    
+    // Make actual API call with operationId - reactions will handle success/failure
+    const promise = updatePartner(partnerToUpdate, operation.operationId);
+    this.updatePartnerRequest = fromPromise(promise);
+  }
 
   deletePartner(id: string): void {
-    const promise = deletePartner(id);
+    const promise = deletePartner(id); // No operationId = non-optimistic
     this.deletePartnerRequest = fromPromise(promise);
+  }
+
+  // Optimistic partner deletion - immediate UI feedback with rollback on failure
+  deletePartnerOptimistic(id: string): void {
+    const partnerToDelete = this.partners.get(id);
+    
+    if (partnerToDelete) {
+      // Create self-managing operation
+      const operation = this.createOptimisticOperation(
+        // Resolve: partner already deleted optimistically, nothing to do
+        () => {
+          // Nothing needed - partner already removed optimistically
+        },
+        // Reject: restore deleted partner
+        () => {
+          this.partners.set(partnerToDelete._id, partnerToDelete);
+        }
+      );
+      
+      // Perform the optimistic delete (remove from UI immediately)
+      this.partners.delete(id);
+      
+      // Make actual API call with operationId - reactions will handle success/failure
+      const promise = deletePartner(id, operation.operationId);
+      this.deletePartnerRequest = fromPromise(promise);
+    }
   }
 
   getPartnerById(id: string): Partner | undefined {
@@ -309,20 +454,12 @@ export class PartnersStore {
     return orderBy(filteredPartners, [sorting.field], [sorting.direction]);
   }
 
-  getActivePartners(): Partner[] {
-    return this.getFilteredPartners({ status: 'active' });
-  }
-
   getPartnersCount(): number {
     return this.partners.size;
   }
 
   getFilteredPartnersCount(filter: PartnerFilter = {}): number {
     return this.getFilteredPartners(filter).length;
-  }
-
-  getActivePartnersCount(): number {
-    return this.getActivePartners().length;
   }
 
   clearError(): void {
@@ -354,6 +491,38 @@ export class PartnersStore {
   
   get isDeletingPartner(): boolean {
     return this.deletePartnerRequest.state === 'pending';
+  }
+
+  // Base method to create self-managing optimistic operations
+  private createOptimisticOperation(
+    onResolve: (response: Partner) => void,
+    onReject: () => void
+  ): OptimisticOperation {
+    // Generate unique operation ID internally
+    const operationId = `op-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    
+    const operation: OptimisticOperation = {
+      operationId,
+      resolve: (response: Partner) => {
+        runInAction(() => {
+          onResolve(response);
+          // Self-remove from operations list on resolve
+          this.optimisticOperations.delete(operationId);
+        });
+      },
+      reject: () => {
+        runInAction(() => {
+          onReject();
+          // Self-remove from operations list on reject
+          this.optimisticOperations.delete(operationId);
+        });
+      }
+    };
+    
+    // Self-add to operations list on creation
+    this.optimisticOperations.set(operationId, operation);
+    
+    return operation;
   }
 
   dispose() {

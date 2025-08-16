@@ -4,7 +4,7 @@ import { validateStatusTransition } from '../entities/partner';
 import { PartnersRepository } from '../repositories/partners';
 import { ValidationService } from '../services/validation';
 import { Partner, PartnerStatusSchema, PartnerSchema } from '../entities/partner/schemas';
-import { CompanyNameStrictSchema, MemberIdSchema, GlobalDiscountPercentageSchema, PartnerBase, PartnerBaseSchema } from '../entities/partner/schemas';
+import { PartnerBase, PartnerBaseSchema } from '../entities/partner/schemas';
 import { PaginationSchema, PartnerSortingSchema } from '../services/validation';
 import { AppError } from '../../dashboard/services/AppError/AppError';
 import { ErrorCategory, ErrorSeverity } from '../../dashboard/services/AppError/ErrorCategories';
@@ -158,7 +158,7 @@ export const getPartnerById = webMethod(
  */
 export const createPartner = webMethod(
 	Permissions.Admin,
-	async (partnerData: PartnerBase): Promise<Partner> => {
+	async (partnerData: PartnerBase, operationId?: string): Promise<Partner & { operationId?: string }> => {
 		try {
 			// Validate input using PartnerCreateInputSchema
 			const validationResult = ValidationService.validate(PartnerBaseSchema, partnerData, 'Partner creation data');
@@ -194,12 +194,18 @@ export const createPartner = webMethod(
 			const partner = await partnersRepository.createPartner(validatedData);
 
 			console.log(`Partner created successfully: ${partner.companyName} (${partner._id})`);
-			return partner;
+			// Only include operationId in response if it was provided in request
+			return operationId ? { ...partner, operationId } : partner;
 		} catch (error) {
 			// If error is already an AppError, re-throw it
 			if (error instanceof AppError) {
 				error.log();
-				return Promise.reject(error.toJSON());
+				const errorResponse: any = error.toJSON();
+				// Include operationId in error response if it was provided
+				if (operationId) {
+					errorResponse.operationId = operationId;
+				}
+				return Promise.reject(errorResponse);
 			}
 
 			// Wrap other errors in AppError
@@ -210,11 +216,16 @@ export const createPartner = webMethod(
 				source: 'createPartner',
 				layer: 'webMethod',
 				severity: ErrorSeverity.HIGH,
-				context: { partnerData }
+				context: { partnerData, operationId }
 			});
 
 			appError.log();
-			return Promise.reject(appError.toJSON());
+			const errorResponse: any = appError.toJSON();
+			// Include operationId in error response if it was provided
+			if (operationId) {
+				errorResponse.operationId = operationId;
+			}
+			return Promise.reject(errorResponse);
 		}
 	}
 );
@@ -224,7 +235,7 @@ export const createPartner = webMethod(
  */
 export const updatePartner = webMethod(
 	Permissions.Admin,
-	async (partner: Partner): Promise<Partner> => {
+	async (partner: Partner, operationId?: string): Promise<Partner & { operationId?: string }> => {
 		try {
 			// Validate complete partner object using Zod schema
 			const validationResult = ValidationService.validate(PartnerSchema, partner, 'Partner');
@@ -268,12 +279,18 @@ export const updatePartner = webMethod(
 			const updatedPartner = await partnersRepository.updatePartner(validatedPartner);
 
 			console.log(`Partner updated successfully: ${updatedPartner.companyName} (${updatedPartner._id})`);
-			return updatedPartner;
+			// Only include operationId in response if it was provided in request
+			return operationId ? { ...updatedPartner, operationId } : updatedPartner;
 		} catch (error) {
 			// If error is already an AppError, re-throw it
 			if (error instanceof AppError) {
 				error.log();
-				return Promise.reject(error.toJSON());
+				const errorResponse: any = error.toJSON();
+				// Include operationId in error response if it was provided
+				if (operationId) {
+					errorResponse.operationId = operationId;
+				}
+				return Promise.reject(errorResponse);
 			}
 
 			// Wrap other errors in AppError
@@ -284,11 +301,16 @@ export const updatePartner = webMethod(
 				source: 'updatePartner',
 				layer: 'webMethod',
 				severity: ErrorSeverity.HIGH,
-				context: { partner }
+				context: { partner, operationId }
 			});
 
 			appError.log();
-			return Promise.reject(appError.toJSON());
+			const errorResponse: any = appError.toJSON();
+			// Include operationId in error response if it was provided
+			if (operationId) {
+				errorResponse.operationId = operationId;
+			}
+			return Promise.reject(errorResponse);
 		}
 	}
 );
@@ -298,7 +320,7 @@ export const updatePartner = webMethod(
  */
 export const deletePartner = webMethod(
 	Permissions.Admin,
-	async (partnerId: string): Promise<Partner> => {
+	async (partnerId: string, operationId?: string): Promise<Partner & { operationId?: string }> => {
 		try {
 			// Validate partner ID using Zod schema
 			const validationResult = ValidationService.validate(PartnerIdParamSchema, partnerId, 'Partner ID');
@@ -327,12 +349,18 @@ export const deletePartner = webMethod(
 
 			console.log(`Partner deleted successfully: ${deletedPartner.companyName} (${deletedPartner._id})`);
 
-			return deletedPartner;
+			// Only include operationId in response if it was provided in request
+			return operationId ? { ...deletedPartner, operationId } : deletedPartner;
 		} catch (error) {
 			// If error is already an AppError, re-throw it
 			if (error instanceof AppError) {
 				error.log();
-				return Promise.reject(error.toJSON());
+				const errorResponse: any = error.toJSON();
+				// Include operationId in error response if it was provided
+				if (operationId) {
+					errorResponse.operationId = operationId;
+				}
+				return Promise.reject(errorResponse);
 			}
 
 			// Wrap other errors in AppError
@@ -343,11 +371,16 @@ export const deletePartner = webMethod(
 				source: 'deletePartner',
 				layer: 'webMethod',
 				severity: ErrorSeverity.HIGH,
-				context: { partnerId }
+				context: { partnerId, operationId }
 			});
 
 			appError.log();
-			return Promise.reject(appError.toJSON());
+			const errorResponse: any = appError.toJSON();
+			// Include operationId in error response if it was provided
+			if (operationId) {
+				errorResponse.operationId = operationId;
+			}
+			return Promise.reject(errorResponse);
 		}
 	}
 );

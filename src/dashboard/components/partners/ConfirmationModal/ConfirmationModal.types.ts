@@ -8,9 +8,3 @@ export interface ConfirmationModalProps {
   onConfirm: () => void;
   onCancel: () => void;
 }
-
-export interface DeleteConfirmationProps {
-  partner: Partner;
-  confirmationText: string;
-  onConfirmationTextChange: (text: string) => void;
-}

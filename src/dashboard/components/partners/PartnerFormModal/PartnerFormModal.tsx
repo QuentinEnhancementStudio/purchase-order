@@ -27,7 +27,6 @@ import {
 export const PartnerFormModal: React.FC<PartnerFormModalProps> = observer(({
 	isOpen,
 	partner,
-	isLoading,
 	members,
 	isLoadingMembers,
 	onSave,
@@ -105,9 +104,7 @@ export const PartnerFormModal: React.FC<PartnerFormModalProps> = observer(({
 	}
 
 	function handleCancel() {
-		if (!isLoading) {
-			onCancel();
-		}
+		onCancel();
 	}
 
 	const isEditing = !!partner;
@@ -136,28 +133,29 @@ export const PartnerFormModal: React.FC<PartnerFormModalProps> = observer(({
 	// Check if status has changed from original value
 	const hasStatusChanged = isEditing && partner && formData.status !== partner.status;
 
-	// Form is valid if validation passes or hasn't been submitted yet
-	const canSubmit = !validation || validation.success || !hasSubmitted;
+	// Form is valid if validation passes, hasn't been submitted yet, or all field errors have been cleared
+	const hasFieldErrors = validation?.fieldErrors && Object.keys(validation.fieldErrors).length > 0;
+	const canSubmit = !validation || validation.success || !hasSubmitted || !hasFieldErrors;
 
 	return (
 		<Modal
 			isOpen={isOpen}
 			onRequestClose={handleCancel}
-			shouldCloseOnOverlayClick={!isLoading}
+			shouldCloseOnOverlayClick={true}
 			screen="desktop"
 		>
 			<CustomModalLayout
 				title={title}
 				onCloseButtonClick={handleCancel}
-				primaryButtonText={isLoading ? 'Saving...' : isEditing ? 'Update Partner' : 'Create Partner'}
+				primaryButtonText={isEditing ? 'Update Partner' : 'Create Partner'}
 				secondaryButtonText="Cancel"
 				primaryButtonOnClick={handleSubmit}
 				secondaryButtonOnClick={handleCancel}
 				primaryButtonProps={{
-					disabled: isLoading || (!canSubmit && hasSubmitted)
+					disabled: (!canSubmit && hasSubmitted)
 				}}
 				secondaryButtonProps={{
-					disabled: isLoading
+					disabled: false
 				}}
 				content={
 					<Box direction="vertical" gap="24px">
@@ -178,7 +176,6 @@ export const PartnerFormModal: React.FC<PartnerFormModalProps> = observer(({
 									status={validation?.fieldErrors?.companyName ? 'error' : undefined}
 									statusMessage={validation?.fieldErrors?.companyName}
 									maxLength={COMPANY_NAME_MAX_LENGTH}
-									disabled={isLoading}
 								/>
 							</FormField>
 
@@ -195,13 +192,26 @@ export const PartnerFormModal: React.FC<PartnerFormModalProps> = observer(({
 									options={memberOptions}
 									selectedId={formData.memberId}
 									value={memberSearchValue}
-									onChange={(e) => setMemberSearchValue(e.target.value)}
+									onChange={(e) => {
+										const newSearchValue = e.target.value;
+										setMemberSearchValue(newSearchValue);
+										
+										// Clear memberId if user clears the input
+										if (!newSearchValue.trim()) {
+											handleInputChange('memberId', '');
+										}
+									}}
 									onSelect={(option) => {
 										handleInputChange('memberId', option?.id as string || '');
 										setMemberSearchValue(option?.label as string || '');
 									}}
+									onBlur={() => {
+										// Reset to previously selected member's name or blank if no selection
+										const selectedMember = members.find(m => m._id === formData.memberId);
+										setMemberSearchValue(selectedMember?.contact?.displayName || '');
+									}}
 									placeholder={isLoadingMembers ? "Loading members..." : "Select a member"}
-									disabled={isLoading || isLoadingMembers}
+									disabled={isLoadingMembers}
 									predicate={(option) => {
 										if (!memberSearchValue.trim()) return true;
 										
@@ -247,7 +257,7 @@ export const PartnerFormModal: React.FC<PartnerFormModalProps> = observer(({
 											step={0.1}
 											status={validation?.fieldErrors?.globalDiscountPercentage ? 'error' : undefined}
 											statusMessage={validation?.fieldErrors?.globalDiscountPercentage}
-											disabled={isLoading}
+											disabled={false}
 										/>
 									</FormField>
 								</Box>
@@ -264,7 +274,7 @@ export const PartnerFormModal: React.FC<PartnerFormModalProps> = observer(({
 											onSelect={(option) => handleInputChange('status', option?.id as PartnerStatus || 'active')}
 											status={validation?.fieldErrors?.status ? 'error' : undefined}
 											statusMessage={validation?.fieldErrors?.status}
-											disabled={isLoading}
+											disabled={false}
 											popoverProps={{
 												appendTo: 'scrollParent',
 												dynamicWidth: false,

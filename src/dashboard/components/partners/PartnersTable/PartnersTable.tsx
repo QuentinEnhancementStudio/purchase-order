@@ -139,6 +139,10 @@ export const PartnersTable: React.FC<PartnersTableProps> = observer(({
             }
           ]}
           moreActionsTooltipText="More actions"
+          popoverMenuProps={{
+            appendTo: 'window',
+            placement: 'left'
+          }}
         />
       ),
       width: '10%'
@@ -238,7 +242,7 @@ onChange={(event) => onPageChange(event.page)}
   }
 
   return (
-    <Card hideOverflow>
+    <Card>
       <Table
         data={partners}
         columns={columns}
