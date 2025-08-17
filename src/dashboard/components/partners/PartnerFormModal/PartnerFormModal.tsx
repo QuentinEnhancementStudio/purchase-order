@@ -10,10 +10,11 @@ import {
 	Dropdown,
 	AutoComplete,
 	listItemSelectBuilder,
+	TextButton,
 } from '@wix/design-system';
 
 import { PartnerFormModalProps } from './PartnerFormModal.types';
-import { ValidationService, ValidationResult} from '../../../../backend/services/validation/validation';
+import { ValidationService, ValidationResult } from '../../../../backend/services/validation/validation';
 import { PartnerBase, PartnerBaseSchema, PartnerForm, PartnerFormSchema } from '../../../../backend/entities/partner/schemas';
 import { PartnerStatus } from '../../../types';
 import { getStatusDisplayName } from '../../../../backend/entities/partner';
@@ -23,6 +24,9 @@ import {
 	DISCOUNT_MIN_VALUE,
 	DISCOUNT_MAX_VALUE
 } from '../../../../backend/entities/partner/schemas';
+import { UserAdd } from '@wix/wix-ui-icons-common';
+import { dashboard } from '@wix/dashboard';
+
 
 export const PartnerFormModal: React.FC<PartnerFormModalProps> = observer(({
 	isOpen,
@@ -35,7 +39,7 @@ export const PartnerFormModal: React.FC<PartnerFormModalProps> = observer(({
 	const [formData, setFormData] = useState<PartnerForm>(() => {
 		// Get schema defaults from form schema
 		const defaults = PartnerFormSchema.parse({});
-		
+
 		// Merge with existing partner data if available
 		if (partner) {
 			return {
@@ -43,7 +47,7 @@ export const PartnerFormModal: React.FC<PartnerFormModalProps> = observer(({
 				...partner,
 			};
 		}
-		
+
 		return defaults;
 	});
 	const [validation, setValidation] = useState<ValidationResult<PartnerBase> | null>(null);
@@ -54,7 +58,7 @@ export const PartnerFormModal: React.FC<PartnerFormModalProps> = observer(({
 		if (isOpen) {
 			// Get schema defaults from form schema
 			const defaults = PartnerFormSchema.parse({});
-			
+
 			// Merge with existing partner data if available
 			if (partner) {
 				setFormData({
@@ -68,7 +72,7 @@ export const PartnerFormModal: React.FC<PartnerFormModalProps> = observer(({
 				setFormData(defaults);
 				setMemberSearchValue('');
 			}
-			
+
 			setValidation(null);
 			setHasSubmitted(false);
 		}
@@ -120,7 +124,7 @@ export const PartnerFormModal: React.FC<PartnerFormModalProps> = observer(({
 		value: getStatusDisplayName(status)
 	}));
 
-	const memberOptions = members.map(member => 
+	const memberOptions = members.map(member =>
 		listItemSelectBuilder({
 			id: member._id,
 			title: member.contact?.displayName || 'Unknown',
@@ -188,14 +192,24 @@ export const PartnerFormModal: React.FC<PartnerFormModalProps> = observer(({
 								statusMessage={validation?.fieldErrors?.memberId}
 							>
 								<AutoComplete
-									
 									options={memberOptions}
 									selectedId={formData.memberId}
 									value={memberSearchValue}
+									fixedFooter={
+										<TextButton
+											onClick={() => dashboard.navigate({ pageId: "c696eca6-7489-40ae-8c41-815cea571b53" })}
+											size='medium'
+											style={{ paddingLeft: 18, paddingTop: 18, paddingBottom: 18, textAlign: 'left' }}
+											prefixIcon={<UserAdd />}
+											fluid
+										>
+											Add New Member
+										</TextButton>
+									}
 									onChange={(e) => {
 										const newSearchValue = e.target.value;
 										setMemberSearchValue(newSearchValue);
-										
+
 										// Clear memberId if user clears the input
 										if (!newSearchValue.trim()) {
 											handleInputChange('memberId', '');
@@ -214,21 +228,21 @@ export const PartnerFormModal: React.FC<PartnerFormModalProps> = observer(({
 									disabled={isLoadingMembers}
 									predicate={(option) => {
 										if (!memberSearchValue.trim()) return true;
-										
+
 										const searchTerm = memberSearchValue.toLowerCase();
-										
+
 										// Find the actual member using option.id
 										const member = members.find(m => m._id === option.id);
 										if (!member) return false;
-										
+
 										// Search in multiple member fields
 										const searchFields = [
 											member.contact?.firstName,
 											member.contact?.lastName,
 											member.loginEmail
 										];
-										
-										return searchFields.some(field => 
+
+										return searchFields.some(field =>
 											field && field.toLowerCase().includes(searchTerm)
 										);
 									}}
@@ -251,7 +265,9 @@ export const PartnerFormModal: React.FC<PartnerFormModalProps> = observer(({
 											value={formData.globalDiscountPercentage.toString()}
 											onChange={(e) => handleInputChange('globalDiscountPercentage', parseFloat(e.target.value) || 0)}
 											placeholder="0"
-											suffix="%"
+											suffix={
+												<div style={{ paddingTop: 4 }}>%</div>
+											}
 											min={DISCOUNT_MIN_VALUE}
 											max={DISCOUNT_MAX_VALUE}
 											step={0.1}
@@ -276,8 +292,10 @@ export const PartnerFormModal: React.FC<PartnerFormModalProps> = observer(({
 											statusMessage={validation?.fieldErrors?.status}
 											disabled={false}
 											popoverProps={{
-												appendTo: 'scrollParent',
-												dynamicWidth: false,
+												appendTo: 'window',
+												placement: 'bottom',
+												zIndex:9000
+												//dynamicWidth: true,
 											}}
 										/>
 									</FormField>

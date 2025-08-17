@@ -71,7 +71,7 @@ export const PartnersTable: React.FC<PartnersTableProps> = observer(({
       title: (
         <div onClick={() => handleSort('companyName')} style={{ cursor: 'pointer' }}>
           <Box align="space-between" verticalAlign="middle">
-            <Text size="small" weight="bold">Company Name</Text>
+            <Text size="small">Company Name</Text>
             {getSortIcon('companyName')}
           </Box>
         </div>
@@ -84,7 +84,7 @@ export const PartnersTable: React.FC<PartnersTableProps> = observer(({
       width: '30%'
     },
     {
-      title: <Text size="small" weight="bold">Member</Text>,
+      title: <Text size="small" >Member</Text>,
       render: (partner: Partner) => (
         <Text size="medium" secondary>
           {partner.memberId ? getMemberDisplayName(partner.memberId) : 'No member assigned'}
@@ -96,7 +96,7 @@ export const PartnersTable: React.FC<PartnersTableProps> = observer(({
       title: (
         <div onClick={() => handleSort('globalDiscountPercentage')} style={{ cursor: 'pointer' }}>
           <Box align="space-between" verticalAlign="middle">
-            <Text size="small" weight="bold">Discount %</Text>
+            <Text size="small" >Discount</Text>
             {getSortIcon('globalDiscountPercentage')}
           </Box>
         </div>
@@ -112,7 +112,7 @@ export const PartnersTable: React.FC<PartnersTableProps> = observer(({
       title: (
         <div onClick={() => handleSort('status')} style={{ cursor: 'pointer' }}>
           <Box align="space-between" verticalAlign="middle">
-            <Text size="small" weight="bold">Status</Text>
+            <Text size="small">Status</Text>
             {getSortIcon('status')}
           </Box>
         </div>
@@ -123,7 +123,7 @@ export const PartnersTable: React.FC<PartnersTableProps> = observer(({
       width: '15%'
     },
     {
-      title: <Text size="small" weight="bold"></Text>,
+      title: <Text size="small"></Text>,
       render: (partner: Partner) => (
         <TableActionCell
           size="medium"

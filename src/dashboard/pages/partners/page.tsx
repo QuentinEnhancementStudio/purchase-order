@@ -120,68 +120,6 @@ const PartnersPage: FC = observer(() => {
 				}
 			)
 		);
-		// Reaction for createPartnerRequest - simplified for optimistic flow
-		disposers.push(
-			reaction(
-				() => partnersStore.createPartnerRequest,
-				(request) => {
-					request.case({
-						fulfilled: newPartner => {
-							// Modal closing and success messages are now handled optimistically
-							// Only handle any additional logic needed on successful creation
-						},
-						rejected: (reason) => {
-							// Error handling only - modal closing is handled optimistically
-							// Could add error notification here if needed
-						},
-					});
-				}
-			)
-		);
-
-		// Reaction for updatePartnerRequest - simplified for optimistic flow
-		disposers.push(
-			reaction(
-				() => partnersStore.updatePartnerRequest,
-				(request) => {
-					request.case({
-						fulfilled: updatedPartner => {
-							// Modal closing and success messages are now handled optimistically
-							// Only handle any additional logic needed on successful update
-						},
-						rejected: () => {
-							// Error handling only - modal closing is handled optimistically
-							// Could add error notification here if needed
-						},
-					});
-				}
-			)
-		);
-
-		// Reaction for deletePartnerRequest
-		disposers.push(
-			reaction(
-				() => partnersStore.deletePartnerRequest,
-				(request) => {
-					request.case({
-						fulfilled: deletedPartner => {
-							if (!deletedPartner) return;
-
-							runInAction(() => {
-								localState.isConfirmationModalOpen = false;
-								localState.confirmationPartner = null;
-							});
-						},
-						rejected: () => {
-							runInAction(() => {
-								localState.isConfirmationModalOpen = false;
-								localState.confirmationPartner = null;
-							});
-						},
-					});
-				}
-			)
-		);
 
 		// Cleanup function
 		return () => {
@@ -245,7 +183,13 @@ const PartnersPage: FC = observer(() => {
 
 	function handleConfirmationConfirm() {
 		if (!localState.confirmationPartner) return;
-		partnersStore.deletePartner(localState.confirmationPartner._id);
+		
+		// Use optimistic delete for immediate UI feedback
+		partnersStore.deletePartnerOptimistic(localState.confirmationPartner._id);
+		
+		// Close modal immediately (optimistic UI)
+		localState.isConfirmationModalOpen = false;
+		localState.confirmationPartner = null;
 	}
 
 	function handleConfirmationCancel() {
