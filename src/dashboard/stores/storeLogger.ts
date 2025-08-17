@@ -1,10 +1,10 @@
-import { observe, toJS, makeAutoObservable, Lambda, IValueDidChange } from 'mobx';
+import { toJS, makeAutoObservable, Lambda, autorun } from 'mobx';
 import { isPromiseBasedObservable } from 'mobx-utils';
 import { pick } from 'lodash';
 
 export interface LoggerConfig {
   enabled: boolean;
-  logLevel: 'full' | 'changes' | 'actions';
+  logLevel: 'full' | 'changes';
   excludeFields?: string[];
 }
 
@@ -44,17 +44,18 @@ export class StoreLogger {
   }
 
   private setupObservers(store: any, storeName: string) {
-    // Observe all changes to the store
-    const observeDisposer = observe(store, (change: IValueDidChange<any>) => {
+    // Use autorun to observe all observable changes including nested properties
+    const autorunDisposer = autorun(() => {
       if (!this.shouldLog(storeName)) return;
 
       const config = this.storeConfigs.get(storeName)!;
       
-      if (config.excludeFields?.includes(change.object?.constructor?.name || '')) return;
-
+      // Access store properties to trigger observation
+      this.sanitizeValue(store);
+      
       switch (config.logLevel) {
         case 'changes':
-          this.logChange(storeName, change);
+          this.logStoreState(store, storeName);
           break;
         case 'full':
           this.logStoreState(store, storeName);
@@ -62,7 +63,7 @@ export class StoreLogger {
       }
     });
 
-    this.observeDisposers.set(storeName, observeDisposer);
+    this.observeDisposers.set(storeName, autorunDisposer);
   }
 
   private disposeObservers(storeName: string) {
@@ -80,21 +81,13 @@ export class StoreLogger {
     return config?.enabled ?? false;
   }
 
-  private logChange(storeName: string, change: IValueDidChange<any>) {
-    const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
-    const prefix = `[${timestamp}] 📦 ${storeName}`;
-    const oldValue = this.sanitizeValue(change.oldValue);
-    const newValue = this.sanitizeValue(change.newValue);
-    
-    console.log(`${prefix} - value: ${JSON.stringify(oldValue)} → ${JSON.stringify(newValue)}`);
-  }
 
   private logStoreState(store: any, storeName: string) {
-    const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
+    const timestamp = new Date().toISOString().split('T')[1];
     const prefix = `[${timestamp}] 📦 ${storeName}`;
     
     console.groupCollapsed(`${prefix}`);
-    console.log('State:', this.sanitizeValue(store));
+    console.log(this.sanitizeValue(store));
     console.groupEnd();
   }
 
