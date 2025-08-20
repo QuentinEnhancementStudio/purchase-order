@@ -1,11 +1,13 @@
 import { makeAutoObservable, reaction, IReactionDisposer } from 'mobx';
 import { PartnersStore } from './partnersStore';
 import { MembersStore } from './membersStore';
+import { PurchaseOrdersStore } from './purchaseOrdersStore';
 import { storeLogger } from './storeLogger';
 
 export class RootStore {
   partnersStore: PartnersStore;
   membersStore: MembersStore;
+  purchaseOrdersStore: PurchaseOrdersStore;
   
   // Reaction disposers for cleanup
   private reactionDisposers: IReactionDisposer[] = [];
@@ -15,6 +17,7 @@ export class RootStore {
     
     this.partnersStore = new PartnersStore();
     this.membersStore = new MembersStore();
+    this.purchaseOrdersStore = new PurchaseOrdersStore();
     
     // Register stores with logger
     this.initializeLogger();
@@ -35,6 +38,12 @@ export class RootStore {
       logLevel: 'full',
       excludeFields: []
     });
+    
+    storeLogger.register(this.purchaseOrdersStore, 'PurchaseOrdersStore', {
+      enabled: true,
+      logLevel: 'full',
+      excludeFields: []
+    });
   }
 
   private setupCrossStoreReactions() {}
@@ -46,10 +55,12 @@ export class RootStore {
     
     this.partnersStore.dispose();
     this.membersStore.dispose();
+    this.purchaseOrdersStore.dispose();
     
     // Cleanup logger registrations
     storeLogger.unregister('PartnersStore');
     storeLogger.unregister('MembersStore');
+    storeLogger.unregister('PurchaseOrdersStore');
   }
 }
 

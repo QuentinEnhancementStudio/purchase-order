@@ -4,3 +4,9 @@ export type {
   PartnerStatus,
   PartnerBase
 } from '../../backend/entities/partner/schemas';
+
+export type {
+  PurchaseOrder,
+  PurchaseOrderStatus,
+  PurchaseOrderBase
+} from '../../backend/entities/purchase-order/schemas';

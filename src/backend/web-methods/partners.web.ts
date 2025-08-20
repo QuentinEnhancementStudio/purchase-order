@@ -8,6 +8,7 @@ import { PartnerBase, PartnerBaseSchema } from '../entities/partner/schemas';
 import { PaginationSchema, PartnerSortingSchema } from '../services/validation';
 import { AppError } from '../../dashboard/services/AppError/AppError';
 import { ErrorCategory, ErrorSeverity } from '../../dashboard/services/AppError/ErrorCategories';
+import { handleWebMethodErrorResponse } from './utils';
 
 const partnersRepository = new PartnersRepository();
 
@@ -80,25 +81,7 @@ export const queryPartners = webMethod(
 			// Return all partners if no filters
 			return await partnersRepository.getAllPartners();
 		} catch (error) {
-			// If error is already an AppError, re-throw it
-			if (error instanceof AppError) {
-				error.log();
-				return Promise.reject(error.toJSON());
-			}
-
-			// Wrap other errors in AppError
-			const appError = new AppError({
-				category: ErrorCategory.SERVER,
-				technicalMessage: `Failed to query partners: ${error instanceof Error ? error.message : String(error)}`,
-				userMessage: 'Unable to load partners list',
-				source: 'queryPartners',
-				layer: 'webMethod',
-				severity: ErrorSeverity.MEDIUM,
-				context: { filters }
-			});
-
-			appError.log();
-			return Promise.reject(appError.toJSON());
+			return handleWebMethodErrorResponse(error, undefined, 'Failed to query partners', 'queryPartners', ErrorSeverity.MEDIUM);
 		}
 	}
 );
@@ -130,25 +113,7 @@ export const getPartnerById = webMethod(
 
 			return partner;
 		} catch (error) {
-			// If error is already an AppError, re-throw it
-			if (error instanceof AppError) {
-				error.log();
-				return Promise.reject(error.toJSON());
-			}
-
-			// Wrap other errors in AppError
-			const appError = new AppError({
-				category: ErrorCategory.SERVER,
-				technicalMessage: `Failed to get partner by ID: ${error instanceof Error ? error.message : String(error)}`,
-				userMessage: 'Unable to load partner details',
-				source: 'getPartnerById',
-				layer: 'webMethod',
-				severity: ErrorSeverity.MEDIUM,
-				context: { partnerId }
-			});
-
-			appError.log();
-			return Promise.reject(appError.toJSON());
+			return handleWebMethodErrorResponse(error, undefined, 'Failed to get partner by ID', 'getPartnerById', ErrorSeverity.MEDIUM);
 		}
 	}
 );
@@ -197,35 +162,7 @@ export const createPartner = webMethod(
 			// Only include operationId in response if it was provided in request
 			return operationId ? { ...partner, operationId } : partner;
 		} catch (error) {
-			// If error is already an AppError, re-throw it
-			if (error instanceof AppError) {
-				error.log();
-				const errorResponse: any = error.toJSON();
-				// Include operationId in error response if it was provided
-				if (operationId) {
-					errorResponse.operationId = operationId;
-				}
-				return Promise.reject(errorResponse);
-			}
-
-			// Wrap other errors in AppError
-			const appError = new AppError({
-				category: ErrorCategory.SERVER,
-				technicalMessage: `Failed to create partner: ${error instanceof Error ? error.message : String(error)}`,
-				userMessage: 'Unable to create partner',
-				source: 'createPartner',
-				layer: 'webMethod',
-				severity: ErrorSeverity.HIGH,
-				context: { partnerData, operationId }
-			});
-
-			appError.log();
-			const errorResponse: any = appError.toJSON();
-			// Include operationId in error response if it was provided
-			if (operationId) {
-				errorResponse.operationId = operationId;
-			}
-			return Promise.reject(errorResponse);
+			return handleWebMethodErrorResponse(error, operationId, 'Failed to create partner', 'createPartner', ErrorSeverity.HIGH);
 		}
 	}
 );
@@ -282,35 +219,7 @@ export const updatePartner = webMethod(
 			// Only include operationId in response if it was provided in request
 			return operationId ? { ...updatedPartner, operationId } : updatedPartner;
 		} catch (error) {
-			// If error is already an AppError, re-throw it
-			if (error instanceof AppError) {
-				error.log();
-				const errorResponse: any = error.toJSON();
-				// Include operationId in error response if it was provided
-				if (operationId) {
-					errorResponse.operationId = operationId;
-				}
-				return Promise.reject(errorResponse);
-			}
-
-			// Wrap other errors in AppError
-			const appError = new AppError({
-				category: ErrorCategory.SERVER,
-				technicalMessage: `Failed to update partner: ${error instanceof Error ? error.message : String(error)}`,
-				userMessage: 'Unable to update partner',
-				source: 'updatePartner',
-				layer: 'webMethod',
-				severity: ErrorSeverity.HIGH,
-				context: { partner, operationId }
-			});
-
-			appError.log();
-			const errorResponse: any = appError.toJSON();
-			// Include operationId in error response if it was provided
-			if (operationId) {
-				errorResponse.operationId = operationId;
-			}
-			return Promise.reject(errorResponse);
+			return handleWebMethodErrorResponse(error, operationId, 'Failed to update partner', 'updatePartner', ErrorSeverity.HIGH);
 		}
 	}
 );
@@ -352,35 +261,7 @@ export const deletePartner = webMethod(
 			// Only include operationId in response if it was provided in request
 			return operationId ? { ...deletedPartner, operationId } : deletedPartner;
 		} catch (error) {
-			// If error is already an AppError, re-throw it
-			if (error instanceof AppError) {
-				error.log();
-				const errorResponse: any = error.toJSON();
-				// Include operationId in error response if it was provided
-				if (operationId) {
-					errorResponse.operationId = operationId;
-				}
-				return Promise.reject(errorResponse);
-			}
-
-			// Wrap other errors in AppError
-			const appError = new AppError({
-				category: ErrorCategory.SERVER,
-				technicalMessage: `Failed to delete partner: ${error instanceof Error ? error.message : String(error)}`,
-				userMessage: 'Unable to delete partner',
-				source: 'deletePartner',
-				layer: 'webMethod',
-				severity: ErrorSeverity.HIGH,
-				context: { partnerId, operationId }
-			});
-
-			appError.log();
-			const errorResponse: any = appError.toJSON();
-			// Include operationId in error response if it was provided
-			if (operationId) {
-				errorResponse.operationId = operationId;
-			}
-			return Promise.reject(errorResponse);
+			return handleWebMethodErrorResponse(error, operationId, 'Failed to delete partner', 'deletePartner', ErrorSeverity.HIGH);
 		}
 	}
 );
@@ -447,25 +328,7 @@ export const searchPartners = webMethod(
 				hasPreviousPage: validatedCriteria.pagination.number > 1
 			};
 		} catch (error) {
-			// If error is already an AppError, re-throw it
-			if (error instanceof AppError) {
-				error.log();
-				return Promise.reject(error.toJSON());
-			}
-
-			// Wrap other errors in AppError
-			const appError = new AppError({
-				category: ErrorCategory.SERVER,
-				technicalMessage: `Failed to search partners: ${error instanceof Error ? error.message : String(error)}`,
-				userMessage: 'Unable to search partners',
-				source: 'searchPartners',
-				layer: 'webMethod',
-				severity: ErrorSeverity.MEDIUM,
-				context: { searchCriteria }
-			});
-
-			appError.log();
-			return Promise.reject(appError.toJSON());
+			return handleWebMethodErrorResponse(error, undefined, 'Failed to search partners', 'searchPartners', ErrorSeverity.MEDIUM);
 		}
 	}
 );
@@ -501,25 +364,7 @@ export const getPartnerStats = webMethod(
 				averageDiscount: Math.round(averageDiscount * 100) / 100 // Round to 2 decimal places
 			};
 		} catch (error) {
-			// If error is already an AppError, re-throw it
-			if (error instanceof AppError) {
-				error.log();
-				return Promise.reject(error.toJSON());
-			}
-
-			// Wrap other errors in AppError
-			const appError = new AppError({
-				category: ErrorCategory.SERVER,
-				technicalMessage: `Failed to get partner statistics: ${error instanceof Error ? error.message : String(error)}`,
-				userMessage: 'Unable to load partner statistics',
-				source: 'getPartnerStats',
-				layer: 'webMethod',
-				severity: ErrorSeverity.MEDIUM,
-				context: {}
-			});
-
-			appError.log();
-			return Promise.reject(appError.toJSON());
+			return handleWebMethodErrorResponse(error, undefined, 'Failed to get partner statistics', 'getPartnerStats', ErrorSeverity.MEDIUM);
 		}
 	}
 );
